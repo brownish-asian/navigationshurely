@@ -638,6 +638,7 @@
                     </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource BodyText}" Text="History navigation is different from moving between verses: it returns to locations visited earlier or later in the session. The history stores up to the most recent 100 positions. A leading Space is not required and is not a general command prefix; use ;f and ;e, not [Space];f or [Space];e." />
+                <TextBlock Style="{StaticResource BodyText}" Text="Note: Any and all commands function as they should regardless of whether the global toggle of the UI is set to visible" />
                 <TextBlock Style="{StaticResource SubHeader}" Text="Verse aliases" />
                 <TextBlock Style="{StaticResource BodyText}" Text="Syntax: ; followed by one exact four-letter alias. A valid alias navigates immediately to its predefined target verse. The codes are fixed shortcuts; they are not generated from a verse’s name or first letters. Appendix B contains every alias supplied by the current shortcut list." />
                 <Grid Margin="0,0,0,24">
@@ -724,6 +725,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Grid.Column="0" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="8,8,8,8">
                         <TextBlock Style="{StaticResource TableHeader}" Text="Structure"/>
@@ -774,9 +776,15 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Return to a mark"/>
                     </Border>
                     <Border Grid.Row="8" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";ABCD"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";[Tab]"/>
                     </Border>
                     <Border Grid.Row="8" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Change Background Image"/>
+                    </Border>
+                    <Border Grid.Row="9" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";ABCD"/>
+                    </Border>
+                    <Border Grid.Row="9" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Navigate to a predefined exact four-letter verse alias"/>
                     </Border>
                 </Grid>

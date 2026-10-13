@@ -268,7 +268,8 @@ namespace navigationshurely
             }
             else
             {
-                frequencyBox.Text = "No results found";
+                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + "No result found";
+                frequencyBox.Text = frequencyText;
             }
         }
 

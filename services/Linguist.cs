@@ -77,13 +77,13 @@ namespace navigationshurely.services
             switch (validity)
             {
                 case EntireCommandStatus.Incomplete:
-                    return Colors.Aqua;
+                    return Color.FromRgb(85, 200, 208);
                 case EntireCommandStatus.Invalid:
-                    return Colors.Red;
+                    return Color.FromRgb(255, 107, 120);
                 case EntireCommandStatus.Valid:
-                    return Colors.LightGreen;
+                    return Color.FromRgb(142, 214, 165);
                 default:
-                    return Colors.AliceBlue;
+                    return Color.FromRgb(197, 206, 216);
             }
         }
 

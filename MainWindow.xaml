@@ -1,4 +1,44 @@
 ﻿<Window x:Class="navigationshurely.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:navigationshurely" mc:Ignorable="d" Title="NavigationShurely" Height="450" Width="800" WindowStyle="None" WindowState="Maximized" ResizeMode="NoResize">
+    <Window.Resources>
+        <!-- Shared colour palette -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#FFEEFF36"/>
+        <SolidColorBrush x:Key="CoolAccentBrush" Color="#FF54C8FF"/>
+        <SolidColorBrush x:Key="GlassBrush" Color="#55071320"/>
+        <SolidColorBrush x:Key="SoftWhiteBrush" Color="#FFF3F6FA"/>
+
+        <!-- Keyboard hints -->
+        <Style x:Key="HintStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFE1EAF4"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000"
+                                      BlurRadius="5"
+                                      ShadowDepth="1"
+                                      Opacity="0.9"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Mode indicator -->
+        <Style x:Key="ModeStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#000000"
+                                      BlurRadius="8"
+                                      ShadowDepth="1"
+                                      Opacity="0.8"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Window.Background>
         <ImageBrush x:Name="BackgroundBrush" ImageSource="images/dbw59.jpg" Stretch="UniformToFill"/>
     </Window.Background>
@@ -17,32 +57,131 @@
             <TextBlock x:Name="verseBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="59"/>
         </Grid>
         <!-- Right-side dynamic list -->
-        <ListView x:Name="rightList" Grid.Row="1" Width="100" MaxHeight="500" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,5,0" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+        <ListView x:Name="rightList"
+          Grid.Row="1"
+          Width="90"
+          MaxHeight="500"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Center"
+          Margin="0,0,5,0"
+          Background="Transparent"
+          BorderThickness="0"
+          Padding="0"
+          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+
+            <ListView.Resources>
+                <!-- Remove the default ListView selection and hover visuals -->
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
+                         Color="#252B38"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}"
+                         Color="#252B38"/>
+                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
+                         Color="#FFFFFF"/>
+            </ListView.Resources>
+
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                    <Setter Property="Padding" Value="0"/>
-                    <Setter Property="Margin" Value="0,3"/>
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0"/>
+
+                    <Setter Property="HorizontalContentAlignment"
+                    Value="Stretch"/>
+
+                    <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+
+                    <Setter Property="Padding"
+                    Value="0"/>
+
+                    <Setter Property="Margin"
+                    Value="0,3"/>
+
+                    <Setter Property="Background"
+                    Value="Transparent"/>
+
+                    <Setter Property="BorderThickness"
+                    Value="0"/>
+
+                    <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
+
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ListViewItem">
-                                <Border Background="Transparent" BorderBrush="{Binding BorderColor}" BorderThickness="2" Padding="10,6">
-                                    <ContentPresenter/>
+
+                                <Border x:Name="ItemBorder"
+                                Background="#B30B0F16"
+                                BorderBrush="{Binding BorderColor}"
+                                BorderThickness="2"
+                                CornerRadius="5"
+                                Padding="10,7"
+                                SnapsToDevicePixels="True">
+
+                                    <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                RecognizesAccessKey="False"/>
+
                                 </Border>
+
+                                <ControlTemplate.Triggers>
+
+                                    <!-- Gentle highlight when the pointer enters -->
+                                    <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                        <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#E61A2230"/>
+                                        <Setter TargetName="ItemBorder"
+                                        Property="BorderThickness"
+                                        Value="2"/>
+                                    </Trigger>
+
+                                    <!-- Keep keyboard selection visually restrained -->
+                                    <Trigger Property="IsSelected"
+                                     Value="True">
+                                        <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#E6212938"/>
+                                    </Trigger>
+
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsSelected"
+                                               Value="True"/>
+                                            <Condition Property="IsMouseOver"
+                                               Value="True"/>
+                                        </MultiTrigger.Conditions>
+
+                                        <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#F02A3547"/>
+                                    </MultiTrigger>
+
+                                </ControlTemplate.Triggers>
+
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
+
                 </Style>
             </ListView.ItemContainerStyle>
+
             <ListView.ItemTemplate>
-                <DataTemplate>  
-                    <TextBlock Text="{Binding}" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="14" TextWrapping="Wrap"/>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                       Foreground="#F1F5F9"
+                       FontFamily="Consolas"
+                       FontWeight="SemiBold"
+                       FontSize="14"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       LineHeight="19"
+                       SnapsToDevicePixels="True"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
+
         </ListView>
-        
+
 
         <!-- Bottom dynamic list -->
         <ListView x:Name="bottomList"
@@ -66,45 +205,115 @@
 
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
-                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                    <Setter Property="VerticalContentAlignment" Value="Center"/>
-                    <Setter Property="Padding" Value="6,3"/>
-                    <Setter Property="Margin" Value="2,0"/>
-                    <Setter Property="Background" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0"/>
+
+                    <Setter Property="HorizontalContentAlignment"
+                    Value="Center"/>
+
+                    <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+
+                    <Setter Property="Padding"
+                    Value="0"/>
+
+                    <Setter Property="Margin"
+                    Value="3,0"/>
+
+                    <Setter Property="Background"
+                    Value="Transparent"/>
+
+                    <Setter Property="BorderThickness"
+                    Value="0"/>
+
+                    <Setter Property="FocusVisualStyle"
+                    Value="{x:Null}"/>
 
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ListViewItem">
-                                <Border Background="Transparent"
+
+                                <Border x:Name="ItemBorder"
+                                Background="#B30B0F16"
                                 BorderBrush="{Binding BorderColor}"
                                 BorderThickness="2"
-                                Padding="6,3">
+                                CornerRadius="5"
+                                Padding="9,5"
+                                SnapsToDevicePixels="True">
 
-                                    <ContentPresenter/>
+                                    <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                RecognizesAccessKey="False"/>
 
                                 </Border>
+
+                                <ControlTemplate.Triggers>
+
+                                    <!-- Subtle hover effect -->
+                                    <Trigger Property="IsMouseOver"
+                                     Value="True">
+
+                                        <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#E61A2230"/>
+
+                                    </Trigger>
+
+                                    <!-- Selected item -->
+                                    <Trigger Property="IsSelected"
+                                     Value="True">
+
+                                        <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#E6212938"/>
+
+                                    </Trigger>
+
+                                    <!-- Stronger highlight when selected and hovered -->
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsSelected"
+                                               Value="True"/>
+                                            <Condition Property="IsMouseOver"
+                                               Value="True"/>
+                                        </MultiTrigger.Conditions>
+
+                                        <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#F02A3547"/>
+                                    </MultiTrigger>
+
+                                </ControlTemplate.Triggers>
+
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
+
                 </Style>
             </ListView.ItemContainerStyle>
 
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding}" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="14" TextWrapping="NoWrap" TextAlignment="Center"/>
+                    <TextBlock Text="{Binding}"
+                       Foreground="#F1F5F9"
+                       FontFamily="Consolas"
+                       FontWeight="SemiBold"
+                       FontSize="14"
+                       TextWrapping="NoWrap"
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       SnapsToDevicePixels="True"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
 
         </ListView>
         <!-- Mode indicator -->
-        <TextBlock x:Name="frequencyBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,70" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="17"/>
-        <TextBlock x:Name="modeBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,30" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="24"/>
+        <TextBlock x:Name="frequencyBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,70" Foreground="#FF9FCBDF" FontFamily="Consolas" FontWeight="Bold" FontSize="17"/>
+        <TextBlock x:Name="modeBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,30" Style="{StaticResource ModeStyle}"/>
         <!-- Command buffer -->
         <TextBlock x:Name="refreshSearchBox"
                    Grid.Row="1"
                Text="Press [Enter] to refresh search"
-               Foreground="White"
+               Foreground="{StaticResource AccentBrush}"
                FontFamily="Consolas"
                FontWeight="Bold"
                FontSize="16"
@@ -112,9 +321,18 @@
                HorizontalAlignment="Center"
                Margin="0,0,20,50"
                Visibility="Hidden"/>
-        <TextBlock x:Name="bufferBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,0" Foreground="Black" FontFamily="Consolas" FontWeight="Bold" FontSize="20"/>
+        <TextBlock x:Name="bufferBox"
+           Grid.Row="1"
+           Text=""
+           HorizontalAlignment="Right"
+           VerticalAlignment="Bottom"
+           Margin="0,0,40,0"
+           Foreground="#182126"
+           FontFamily="Consolas"
+           FontWeight="Bold"
+           FontSize="20"/>
         <!-- Hints -->
-        <TextBlock x:Name="hintBoxOne" Grid.Row="1" Text="[space];f for help" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,50" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="20"/>
-        <TextBlock x:Name="hintBoxTwo" Grid.Row="1" Text="[space];e to toggle UI" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,20" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="20"/>
+        <TextBlock x:Name="hintBoxOne" Grid.Row="1" Text="[space];f for help" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,50" Style="{StaticResource HintStyle}"/>
+        <TextBlock x:Name="hintBoxTwo" Grid.Row="1" Text="[space];e to toggle UI" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,20" Style="{StaticResource HintStyle}"/>
     </Grid>
 </Window>
