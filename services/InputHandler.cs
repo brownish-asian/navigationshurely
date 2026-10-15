@@ -20,7 +20,10 @@ namespace navigationshurely.Services
             };
         }
 
-
+        public string AliasForThisVerse(int encodedBookNumber)
+        {
+            return linguist.AliasForThisVerse(encodedBookNumber);
+        }
 
         public EntireCommandStatus ProcessKey(Key key)
         {

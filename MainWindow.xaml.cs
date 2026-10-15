@@ -71,6 +71,7 @@ namespace navigationshurely
             hintBoxOne.Visibility = visibility;
             hintBoxTwo.Visibility = visibility;
             frequencyBox.Visibility = visibility;
+            aliasBox.Visibility = visibility;
 
             // Search-related controls obey BOTH states.
             ApplySearchUiVisibility();
@@ -163,6 +164,7 @@ namespace navigationshurely
             titleBox.Text = verse.ToString();
             verseBox.Text = verse.Text;
             translationBox.Text = _database.TranslationName();
+            aliasBox.Text = inputHandler.AliasForThisVerse(navigator.VerseEncodedNumber());
             AdjustVerseFontSize();
         }
 
@@ -174,7 +176,10 @@ namespace navigationshurely
             {
                 "images/dbw59.jpg" => "images/dbw02.jpg",
                 "images/dbw02.jpg" => "images/dbw04.jpg",
-                "images/dbw04.jpg" => "images/dbw59.jpg",
+                "images/dbw04.jpg" => "images/dbw08.jpg",
+                "images/dbw08.jpg" => "images/dbw16.jpg",
+                "images/dbw16.jpg" => "images/dbw17.jpg",
+                "images/dbw17.jpg" => "images/dbw59.jpg",
                 _ => "images/dbw59.jpg"
             };
 
@@ -188,6 +193,7 @@ namespace navigationshurely
             // OR replace the window background entirely in code:
             // this.Background = new ImageBrush(bitmap);
         }
+
         private void OpenHelpWindow()
         {
             HelpWindow helpWindow = new HelpWindow();

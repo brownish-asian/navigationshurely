@@ -308,6 +308,18 @@
         </ListView>
         <!-- Mode indicator -->
         <TextBlock x:Name="frequencyBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,70" Foreground="#FF9FCBDF" FontFamily="Consolas" FontWeight="Bold" FontSize="17"/>
+        <!-- Alias indicator -->
+        <TextBlock x:Name="aliasBox"
+           Grid.Row="1"
+           Text=""
+           HorizontalAlignment="Center"
+           VerticalAlignment="Bottom"
+           Margin="0,0,0,30"
+           Foreground="#FF54C8FF"
+           FontFamily="Consolas"
+           FontWeight="Bold"
+           FontSize="17"
+           Visibility="Visible"/>
         <TextBlock x:Name="modeBox" Grid.Row="1" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,30" Style="{StaticResource ModeStyle}"/>
         <!-- Command buffer -->
         <TextBlock x:Name="refreshSearchBox"

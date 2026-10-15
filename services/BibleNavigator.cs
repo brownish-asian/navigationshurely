@@ -282,7 +282,13 @@ public class BibleNavigator
     //                                                 HELPERS
     //==========================================================================================================================
 
-
+    public int VerseEncodedNumber()
+    {
+        int bookPart = CurrentVerse.BookId;
+        int chapterPart = CurrentVerse.Chapter;
+        int versePart = CurrentVerse.VerseNumber;
+        return bookPart * 1000000 + chapterPart * 1000 + versePart;
+    }
     // =========================================================
     // SEARCH FUNCTIONALITY
     // =========================================================
