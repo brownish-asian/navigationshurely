@@ -66,9 +66,35 @@ namespace navigationshurely.Services
                         character = '>';
                         return true;
 
+                    case Key.F:
+                        character = '\u0001'; // Ctrl+f
+                        return true;
+
+                    case Key.Back:
+                        character = '\u0006'; // Ctrl+Backspace
+                        return true;
+
+                    case Key.Q:
+                        character = '\u0005'; 
+                        return true;
+
+                    case Key.B:
+                        character = '\u0002'; // Ctrl+b
+                        return true;
+
                     default:
                         character = '\0';
                         return false;
+                }
+            }
+
+            // Shift+Tab must be checked before ordinary Tab.
+            if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+            {
+                if (key == Key.Tab)
+                {
+                    character = '\u0003'; // Shift+Tab
+                    return true;
                 }
             }
 
@@ -96,6 +122,14 @@ namespace navigationshurely.Services
 
             switch (key)
             {
+                case Key.OemPeriod:
+                    character = '.'; // Full stop (.)
+                    return true;
+
+                case Key.OemMinus:
+                    character = '-'; // Normal hyphen (-)
+                    return true;
+
                 case Key.OemQuotes:
                     character = '\'';
                     return true;

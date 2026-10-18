@@ -30,9 +30,13 @@ namespace navigationshurely.models
         private BibleDatabase database;
 
         private int translationId;
+
         public int BookId { get; set; }
+
         public int Chapter { get; set; }
+
         public int VerseNumber { get; set; }
+
         public string Text { get; set; } = "";
 
         public string Name 

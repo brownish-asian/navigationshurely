@@ -21,6 +21,7 @@ namespace navigationshurely.services
         private int quantifier = 0;
         private EntireCommandStatus validity;
         private State previousStateBeforeSearch;
+        private int previousQuantifier = 1;
         private char? activeFilter;
         private string searchQuery = string.Empty;
         private string wholeQueryWithCommas;
@@ -66,6 +67,15 @@ namespace navigationshurely.services
                     break;
                 case '>':
                     commandString += "Ctrl+U";
+                    break;
+                case '\u0003':
+                    commandString += "Shift+[Tab]";
+                    break;
+                case '\u0001':
+                    commandString += "Ctrl+F";
+                    break;
+                case '\u0002':
+                    commandString += "Ctrl+B";
                     break;
                 default:
                     commandString += k;
@@ -435,27 +445,40 @@ namespace navigationshurely.services
             ["dnab"] = 39003010, // Malachi 3:10
             ["mamm"] = 40005003, // Matthew 5:3
             ["mans"] = 40005004, // Matthew 5:4
+            ["mams"] = 40005005, // NEW: Matthew 5:5
             ["mana"] = 40005006, // Matthew 5:6
+            ["mamp"] = 40005010, // NEW: Matthew 5:10
+            ["mkpk"] = 40005011, // NEW: Matthew 5:11
             ["kain"] = 40005014, // Matthew 5:14
             ["lnga"] = 40005016, // Matthew 5:16
             ["dsks"] = 40005044, // Matthew 5:44
             ["dipi"] = 40006006, // Matthew 6:6
             ["mnkn"] = 40006009, // Matthew 6:9
+            ["skin"] = 40006014, // NEW: Matthew 6:14
             ["kmkn"] = 40006020, // Matthew 6:20
             ["sksn"] = 40006021, // Matthew 6:21
             ["mnam"] = 40006026, // Matthew 6:26
             ["khkm"] = 40006031, // Matthew 6:31
             ["dhmn"] = 40006033, // Matthew 6:33
+            ["khni"] = 40006034, // NEW: Matthew 6:34
+            ["hkmu"] = 40007001, // NEW: Matthew 7:1
             ["mkak"] = 40007007, // Matthew 7:7
             ["sabh"] = 40007008, // Matthew 7:8
             ["knln"] = 40007012, // Matthew 7:12
+            ["kmsm"] = 40007013, // NEW: Matthew 7:13
+            ["kabd"] = 40007024, // NEW: Matthew 7:24
             ["msak"] = 40011028, // Matthew 11:28
+            ["pnaa"] = 40011029, // NEW: Matthew 11:29
             ["nmsn"] = 40016024, // Matthew 16:24
+            ["dsnj"] = 40019014, // NEW: Matthew 19:14
             ["apnj"] = 40019026, // Matthew 19:26
+            ["kamu"] = 40020016, // NEW: Matthew 20:16
             ["alnm"] = 40021022, // Matthew 21:22
+            ["smam"] = 40022014, // NEW: Matthew 22:14
             ["assk"] = 40022037, // Matthew 22:37
             ["iada"] = 40022038, // Matthew 22:38
             ["aapk"] = 40022039, // Matthew 22:39
+            ["damh"] = 40024013, // NEW: Matthew 24:13
             ["dkpn"] = 40024029, // NEW: Matthew 24:29
             ["spni"] = 40024032, // NEW: Matthew 24:32
             ["alaa"] = 40024035, // Matthew 24:35
@@ -466,6 +489,7 @@ namespace navigationshurely.services
             ["ditn"] = 40024043, // NEW: Matthew 24:43
             ["knkm"] = 40024044, // NEW: Matthew 24:44
             ["asah"] = 40025040, // Matthew 25:40
+            ["asaa"] = 40028005, // NEW: Matthew 28:5
             ["swrs"] = 40028006, // NEW: Matthew 28:6
             ["amkm"] = 40028007, // NEW: Matthew 28:7
             ["alsj"] = 40028018, // Matthew 28:18
@@ -475,9 +499,20 @@ namespace navigationshurely.services
             ["aspk"] = 41001002, // NEW: Mark 1:2
             ["dsjn"] = 41001004, // NEW: Mark 1:4
             ["annm"] = 41001009, // NEW: Mark 1:9
+            ["amit"] = 41001011, // NEW: Mark 1:11
             ["asnn"] = 41001015, // NEW: Mark 1:15
+            ["apst"] = 41001016, // NEW: Mark 1:16
+            ["apin"] = 41001018, // NEW: Mark 1:18
+            ["alpa"] = 41001028, // NEW: Mark 1:28
+            ["ankp"] = 41001032, // NEW: Mark 1:32
             ["anim"] = 41002017, // NEW: Mark 2:17
+            ["awtn"] = 41002022, // NEW: Mark 2:22
+            ["ssgn"] = 41003035, // NEW: Mark 3:35
+            ["agsa"] = 41004039, // NEW: Mark 4:39
+            ["ahni"] = 41005019, // NEW: Mark 5:19
             ["dhpn"] = 41005036, // NEW: Mark 5:36
+            ["alsa"] = 41006034, // NEW: Mark 6:34
+            ["wanl"] = 41007015, // NEW: Mark 7:15
             ["psaa"] = 41009024, // NEW: Mark 9:24
             ["ansu"] = 41010017, // Mark 10:17
             ["nmam"] = 41010019, // Mark 10:19
@@ -491,20 +526,29 @@ namespace navigationshurely.services
             ["nhst"] = 41010030, // Mark 10:30
             ["dmna"] = 41010031, // Mark 10:31
             ["aska"] = 41010034, // Mark 10:34
+            ["dsia"] = 41010043, // NEW: Mark 10:43
             ["saan"] = 41010045, // Mark 10:45
             ["knsk"] = 41011024, // Mark 11:24
             ["aima"] = 41012030, // Mark 12:30
             ["apai"] = 41012031, // Mark 12:31
+            ["apkd"] = 41013011, // NEW: Mark 13:11
+            ["aksa"] = 41014036, // NEW: Mark 14:36
             ["asns"] = 41016015, // Mark 16:15
             ["alam"] = 41016017, // NEW: Mark 16:17
             ["smnm"] = 41016018, // NEW: Mark 16:18
             ["umma"] = 42001004, // NEW: Luke 1:4
+            ["asls"] = 42001017, // NEW: Luke 1:17
+            ["asnz"] = 42001018, // NEW: Luke 1:18
+            ["apss"] = 42001028, // NEW: Luke 1:28
             ["swsm"] = 42001037, // Luke 1:37
             ["amab"] = 42001045, // NEW: Luke 1:45
             ["anaa"] = 42001047, // NEW: Luke 1:47
             ["snna"] = 42001048, // NEW: Luke 1:48
             ["sisi"] = 42002011, // NEW: Luke 2:11
             ["lsds"] = 42002014, // NEW: Luke 2:14
+            ["alab"] = 42002040, // NEW: Luke 2:40
+            ["saae"] = 42004018, // NEW: Luke 4:18
+            ["hapu"] = 42005032, // NEW: Luke 5:32
             ["ssnt"] = 42006014, // Luke 6:14
             ["apnb"] = 42006019, // Luke 6:19
             ["aina"] = 42006020, // Luke 6:20
@@ -519,17 +563,27 @@ namespace navigationshurely.services
             ["akkm"] = 42006032, // Luke 6:32
             ["dina"] = 42006035, // NEW: Luke 6:35
             ["mkgn"] = 42006036, // Luke 6:36
+            ["aasm"] = 42008015, // NEW: Luke 8:15
+            ["dnmi"] = 42008050, // NEW: Luke 8:50
+            ["sasm"] = 42009024, // NEW: Luke 9:24
             ["apns"] = 42010027, // Luke 10:27
             ["asks"] = 42011009, // Luke 11:9
+            ["dsno"] = 42011028, // NEW: Luke 11:28
             ["dmam"] = 42012007, // Luke 12:7
             ["gmhn"] = 42012031, // Luke 12:31
             ["shnn"] = 42014027, // NEW: Luke 14:27
             ["sksi"] = 42015007, // NEW: Luke 15:7
+            ["gdsk"] = 42015010, // NEW: Luke 15:10
+            ["asnp"] = 42017006, // NEW: Luke 17:6
             ["dsna"] = 42018027, // Luke 18:27
+            ["sipa"] = 42021019, // NEW: Luke 21:19
+            ["asdn"] = 42022019, // NEW: Luke 22:19
             ["nsak"] = 42022042, // NEW: Luke 22:42
             ["asnj"] = 42023034, // Luke 23:34
             ["asjn"] = 42023046, // Luke 23:46
+            ["assn"] = 42024032, // NEW: Luke 24:32
             ["npsa"] = 43001001, // John 1:1
+            ["daln"] = 43001012, // NEW: John 1:12
             ["anav"] = 43001014, // John 1:14
             ["psnj"] = 43001015, // John 1:15
             ["sskk"] = 43001016, // John 1:16
@@ -542,25 +596,34 @@ namespace navigationshurely.services
             ["ssnj"] = 43001026, // John 1:26
             ["snap"] = 43001027, // John 1:27
             ["nkan"] = 43001029, // John 1:29
+            ["ashk"] = 43001031, // NEW: John 1:31
+            ["ansj"] = 43001032, // NEW: John 1:32
             ["snki"] = 43002005, // NEW: John 2:5
             ["ssja"] = 43003003, // John 3:3
+            ["hahk"] = 43003008, // NEW: John 3:8
             ["sgnl"] = 43003016, // John 3:16
             ["shsn"] = 43003017, // John 3:17
+            ["skdn"] = 43003030, // NEW: John 3:30
             ["dasu"] = 43004014, // NEW: John 4:14
+            ["ddao"] = 43004023, // NEW: John 4:23
             ["adae"] = 43004024, // John 4:24
             ["kksk"] = 43005024, // NEW: John 5:24
             ["alni"] = 43006037, // NEW: John 6:37
             ["siak"] = 43006040, // NEW: John 6:40
+            ["nhan"] = 43007037, // NEW: John 7:37
             ["mnns"] = 43008012, // John 8:12
             ["snnj"] = 43008031, // John 8:31
             ["kpnk"] = 43008036, // NEW: John 8:36
             ["hpam"] = 43010010, // John 10:10
             ["aamp"] = 43010011, // John 10:11
+            ["dnam"] = 43010027, // NEW: John 10:27
             ["sskn"] = 43011025, // John 11:25
             ["aasn"] = 43011026, // John 11:26
             ["anni"] = 43012046, // NEW: John 12:46
             ["ibua"] = 43013034, // John 13:34
+            ["sgmn"] = 43013035, // NEW: John 13:35
             ["hmai"] = 43014001, // John 14:1
+            ["akap"] = 43014003, // NEW: John 14:3
             ["aaai"] = 43014013, // John 14:13
             ["kkmn"] = 43014014, // John 14:14
             ["kaii"] = 43014015, // John 14:15
@@ -572,12 +635,17 @@ namespace navigationshurely.services
             ["iaau"] = 43015012, // John 15:12
             ["wmld"] = 43015013, // John 15:13
             ["ahnh"] = 43015016, // John 15:16
+            ["gmks"] = 43016013, // NEW: John 16:13
             ["hnwp"] = 43016024, // NEW: John 16:24
             ["ambn"] = 43016033, // John 16:33
             ["aiab"] = 43017003, // John 17:3
             ["pmss"] = 43017017, // John 17:17
             ["hlsa"] = 43017020, // NEW: John 17:20
+            ["snsk"] = 43018037, // NEW: John 18:37
+            ["nmnn"] = 43019030, // NEW: John 19:30
+            ["snms"] = 43020021, // NEW: John 20:21
             ["nami"] = 43020031, // NEW: John 20:31
+            ["amdi"] = 43021025, // NEW: John 21:25
             ["dtna"] = 44001008, // Acts 1:8
             ["nnnk"] = 44001011, // NEW: Acts 1:11
             ["anma"] = 44001015, // Acts 1:15
@@ -591,20 +659,36 @@ namespace navigationshurely.services
             ["andn"] = 44002001, // Acts 2:1
             ["abdm"] = 44002002, // Acts 2:2
             ["asla"] = 44002004, // Acts 2:4
+            ["amsm"] = 44002017, // NEW: Acts 2:17
             ["amna"] = 44002021, // NEW: Acts 2:21
+            ["ssia"] = 44002039, // NEW: Acts 2:39
+            ["asnm"] = 44002042, // NEW: Acts 2:42
+            ["dsnp"] = 44003006, // NEW: Acts 3:6
             ["askm"] = 44004012, // Acts 4:12
+            ["shmd"] = 44004020, // NEW: Acts 4:20
+            ["ansm"] = 44004031, // NEW: Acts 4:31
+            ["dnsp"] = 44005029, // NEW: Acts 5:29
+            ["abnf"] = 44008035, // NEW: Acts 8:35
+            ["dssk"] = 44009015, // NEW: Acts 9:15
             ["sgnn"] = 44009031, // NEW: Acts 9:31
+            ["smbs"] = 44010038, // NEW: Acts 10:38
             ["sapn"] = 44010043, // NEW: Acts 10:43
+            ["dnmn"] = 44016025, // NEW: Acts 16:25
             ["aksm"] = 44016031, // Acts 16:31
             ["nlnm"] = 44017011, // NEW: Acts 17:11
+            ["adng"] = 44017024, // NEW: Acts 17:24
             ["ukha"] = 44017027, // NEW: Acts 17:27
+            ["sskt"] = 44017028, // NEW: Acts 17:28
             ["sasa"] = 44018010, // NEW: Acts 18:10
             ["dhkm"] = 44020024, // NEW: Acts 20:24
             ["anik"] = 44020032, // NEW: Acts 20:32
             ["nhas"] = 44020035, // Acts 20:35
+            ["dmka"] = 44026016, // NEW: Acts 26:16
             ["uima"] = 44026018, // NEW: Acts 26:18
             ["shki"] = 45001016, // Romans 1:16
+            ["sdak"] = 45001017, // NEW: Romans 1:17
             ["samb"] = 45001020, // Romans 1:20
+            ["ohma"] = 45002004, // NEW: Romans 2:4
             ["akla"] = 45003013, // Romans 3:13
             ["akba"] = 45003014, // Romans 3:14
             ["akmp"] = 45003015, // Romans 3:15
@@ -617,22 +701,31 @@ namespace navigationshurely.services
             ["sala"] = 45003023, // Romans 3:23
             ["pinw"] = 45003024, // Romans 3:24
             ["nsin"] = 45003025, // Romans 3:25
+            ["knmn"] = 45003028, // NEW: Romans 3:28
+            ["dskn"] = 45004005, // NEW: Romans 4:5
+            ["ahlg"] = 45005003, // NEW: Romans 5:3
             ["dind"] = 45005008, // Romans 5:8
             ["kkpn"] = 45005012, // NEW: Romans 5:12
             ["sksp"] = 45005017, // NEW: Romans 5:17
             ["tnnn"] = 45006004, // NEW: Romans 6:4
+            ["gdnk"] = 45006011, // NEW: Romans 6:11
+            ["saka"] = 45006014, // NEW: Romans 6:14
             ["sakn"] = 45006023, // Romans 6:23
+            ["dntn"] = 45007006, // NEW: Romans 7:6
             ["knak"] = 45007012, // Romans 7:12
             ["nnwn"] = 45008001, // Romans 8:1
             ["sama"] = 45008005, // NEW: Romans 8:5
+            ["aera"] = 45008016, // NEW: Romans 8:16
             ["snkn"] = 45008018, // Romans 8:18
             ["agdn"] = 45008026, // Romans 8:26
             ["annn"] = 45008028, // Romans 8:28
             ["aaas"] = 45008031, // Romans 8:31
             ["snhi"] = 45008032, // Romans 8:32
+            ["samn"] = 45008033, // NEW: Romans 8:33
             ["hksl"] = 45008037, // Romans 8:37
             ["sanl"] = 45008038, // Romans 8:38
             ["kakk"] = 45008039, // Romans 8:39
+            ["knhs"] = 45009016, // NEW: Romans 9:16
             ["ssca"] = 45010004, // Romans 10:4
             ["skim"] = 45010009, // Romans 10:9
             ["satn"] = 45010010, // Romans 10:10
@@ -641,13 +734,17 @@ namespace navigationshurely.services
             ["knmk"] = 45012001, // Romans 12:1
             ["ahkm"] = 45012002, // Romans 12:2
             ["mspm"] = 45012012, // Romans 12:12
+            ["mksn"] = 45012015, // NEW: Romans 12:15
             ["kmas"] = 45012018, // NEW: Romans 12:18
             ["hkmm"] = 45012019, // NEW: Romans 12:19
             ["hkps"] = 45012021, // Romans 12:21
             ["abka"] = 45013001, // NEW: Romans 13:1
+            ["kbin"] = 45013014, // NEW: Romans 13:14
             ["sknt"] = 45014008, // NEW: Romans 14:8
             ["lnnd"] = 45015005, // NEW: Romans 15:5
+            ["sgmk"] = 45015007, // NEW: Romans 15:7
             ["pnkn"] = 45015013, // Romans 15:13
+            ["adat"] = 46001009, // NEW: 1 Corinthians 1:9
             ["nbsc"] = 46001013, // 1 Corinthians 1:13
             ["nasd"] = 46001014, // 1 Corinthians 1:14
             ["abkr"] = 46001016, // 1 Corinthians 1:16
@@ -660,25 +757,46 @@ namespace navigationshurely.services
             ["daai"] = 46001023, // 1 Corinthians 1:23
             ["kpnd"] = 46001027, // 1 Corinthians 1:27
             ["uwln"] = 46001029, // 1 Corinthians 1:29
+            ["dgnn"] = 46002009, // NEW: 1 Corinthians 2:9
+            ["ssan"] = 46002016, // NEW: 1 Corinthians 2:16
+            ["apwa"] = 46003007, // NEW: 1 Corinthians 3:7
+            ["ssah"] = 46003011, // NEW: 1 Corinthians 3:11
             ["hbnn"] = 46003016, // 1 Corinthians 3:16
             ["kgns"] = 46003017, // NEW: 1 Corinthians 3:17
+            ["shms"] = 46003018, // NEW: 1 Corinthians 3:18
+            ["ssag"] = 46004007, // NEW: 1 Corinthians 4:7
             ["ohbn"] = 46006019, // 1 Corinthians 6:19
+            ["skbs"] = 46006020, // NEW: 1 Corinthians 6:20
             ["hdsi"] = 46010013, // 1 Corinthians 10:13
             ["kkkn"] = 46010031, // NEW: 1 Corinthians 10:31
             ["mttk"] = 46011001, // NEW: 1 Corinthians 11:1
+            ["stks"] = 46011023, // NEW: 1 Corinthians 11:23
             ["dsbi"] = 46012007, // NEW: 1 Corinthians 12:7
+            ["dmnn"] = 46012031, // NEW: 1 Corinthians 12:31
             ["kamn"] = 46013001, // NEW: 1 Corinthians 13:1
             ["akma"] = 46013002, // NEW: 1 Corinthians 13:2
             ["hnmh"] = 46013005, // NEW: 1 Corinthians 13:5
             ["hnsk"] = 46013006, // NEW: 1 Corinthians 13:6
             ["labl"] = 46013007, // 1 Corinthians 13:7
             ["kinn"] = 46014037, // 1 Corinthians 14:37
+            ["dspn"] = 46015010, // NEW: 1 Corinthians 15:10
+            ["skpk"] = 46015022, // NEW: 1 Corinthians 15:22
             ["hkpa"] = 46015033, // 1 Corinthians 15:33
+            ["nsks"] = 46015051, // NEW: 1 Corinthians 15:51
+            ["dssd"] = 46015057, // NEW: 1 Corinthians 15:57
             ["mkmk"] = 46016013, // NEW: 1 Corinthians 16:13
             ["gnsp"] = 46016014, // NEW: 1 Corinthians 16:14
+            ["nsus"] = 47001004, // NEW: 2 Corinthians 1:4
             ["smgm"] = 47001020, // NEW: 2 Corinthians 1:20
+            ["hska"] = 47003005, // NEW: 2 Corinthians 3:5
             ["dtln"] = 47003018, // NEW: 2 Corinthians 3:18
+            ["shni"] = 47004005, // NEW: 2 Corinthians 4:5
             ["ntna"] = 47004007, // 2 Corinthians 4:7
+            ["sman"] = 47004008, // NEW: 2 Corinthians 4:8
+            ["pgmh"] = 47004009, // NEW: 2 Corinthians 4:9
+            ["lsmt"] = 47004010, // NEW: 2 Corinthians 4:10
+            ["skna"] = 47004011, // NEW: 2 Corinthians 4:11
+            ["nymg"] = 47004013, // NEW: 2 Corinthians 4:13
             ["saln"] = 47004015, // 2 Corinthians 4:15
             ["skan"] = 47004018, // 2 Corinthians 4:18
             ["snnn"] = 47005001, // 2 Corinthians 5:1
@@ -692,12 +810,16 @@ namespace navigationshurely.services
             ["stla"] = 47005010, // 2 Corinthians 5:10
             ["hnim"] = 47005012, // 2 Corinthians 5:12
             ["kkas"] = 47005017, // 2 Corinthians 5:17
+            ["ssns"] = 47006002, // NEW: 2 Corinthians 6:2
             ["sakm"] = 47007010, // NEW: 2 Corinthians 7:10
             ["dska"] = 47009006, // NEW: 2 Corinthians 9:6
+            ["mabi"] = 47009007, // NEW: 2 Corinthians 9:7
             ["amgn"] = 47009008, // NEW: 2 Corinthians 9:8
+            ["sams"] = 47010004, // NEW: 2 Corinthians 10:4
             ["knan"] = 47012010, // NEW: 2 Corinthians 12:10
             ["tnam"] = 47012012, // NEW: 2 Corinthians 12:12
             ["aagn"] = 47012015, // NEW: 2 Corinthians 12:15
+            ["snai"] = 47013005, // NEW: 2 Corinthians 13:5
             ["abnp"] = 47013014, // NEW: 2 Corinthians 13:14
             ["spna"] = 48001001, // NEW: Galatians 1:1
             ["snab"] = 48001003, // NEW: Galatians 1:3
@@ -714,19 +836,29 @@ namespace navigationshurely.services
             ["sasp"] = 48002019, // Galatians 2:19
             ["ansk"] = 48002020, // Galatians 2:20
             ["hknn"] = 48002021, // Galatians 2:21
+            ["ssnk"] = 48003013, // NEW: Galatians 3:13
             ["wmjo"] = 48003028, // NEW: Galatians 3:28
             ["aphk"] = 48004007, // NEW: Galatians 4:7
             ["skap"] = 48005001, // Galatians 5:1
             ["nasp"] = 48005002, // Galatians 5:2
             ["opkm"] = 48005003, // Galatians 5:3
+            ["stsp"] = 48005005, // NEW: Galatians 5:5
             ["skcj"] = 48005006, // NEW: Galatians 5:6
+            ["apni"] = 48005008, // NEW: Galatians 5:8
+            ["amps"] = 48005010, // NEW: Galatians 5:10
+            ["namk"] = 48005011, // NEW: Galatians 5:11
             ["sabk"] = 48005014, // NEW: Galatians 5:14
+            ["dkkp"] = 48005018, // NEW: Galatians 5:18
             ["dabn"] = 48005022, // Galatians 5:22
             ["kpls"] = 48005023, // Galatians 5:23
+            ["aisk"] = 48005024, // NEW: Galatians 5:24
+            ["ktns"] = 48005025, // NEW: Galatians 5:25
             ["mksp"] = 48006002, // Galatians 6:2
+            ["sann"] = 48006008, // NEW: Galatians 6:8
             ["ahtm"] = 48006009, // Galatians 6:9
             ["knst"] = 48006010, // Galatians 6:10
             ["dmns"] = 48006014, // Galatians 6:14
+            ["mkab"] = 48006018, // NEW: Galatians 6:18
             ["nskm"] = 49001007, // NEW: Ephesians 1:7
             ["ddar"] = 49001015, // Ephesians 1:15
             ["ahat"] = 49001016, // Ephesians 1:16
@@ -739,22 +871,32 @@ namespace navigationshurely.services
             ["sgnm"] = 49002003, // Ephesians 2:3
             ["nadp"] = 49002004, // Ephesians 2:4
             ["atik"] = 49002006, // Ephesians 2:6
+            ["usmp"] = 49002007, // NEW: Ephesians 2:7
             ["ssbk"] = 49002008, // Ephesians 2:8
+            ["hspn"] = 49002009, // NEW: Ephesians 2:9
             ["stkg"] = 49002010, // NEW: Ephesians 2:10
+            ["nknp"] = 49002012, // NEW: Ephesians 2:12
+            ["aups"] = 49002016, // NEW: Ephesians 2:16
+            ["nska"] = 49002021, // NEW: Ephesians 2:21
+            ["nski"] = 49002022, // NEW: Ephesians 2:22
             ["usii"] = 49003016, // NEW: Ephesians 3:16
             ["nsca"] = 49003017, // NEW: Ephesians 3:17
             ["nsmg"] = 49003020, // Ephesians 3:20
+            ["nnsi"] = 49004001, // NEW: Ephesians 4:1
             ["nbka"] = 49004002, // NEW: Ephesians 4:2
             ["kmah"] = 49004026, // NEW: Ephesians 4:26
             ["amks"] = 49004032, // Ephesians 4:32
             ["knms"] = 49005001, // NEW: Ephesians 5:1
             ["snpk"] = 49005008, // NEW: Ephesians 5:8
+            ["nklm"] = 49005020, // NEW: Ephesians 5:20
             ["mlin"] = 49005025, // NEW: Ephesians 5:25
             ["gdnn"] = 49005028, // NEW: Ephesians 5:28
             ["skmk"] = 49006010, // Ephesians 6:10
             ["mknb"] = 49006011, // Ephesians 6:11
             ["saap"] = 49006012, // Ephesians 6:12
+            ["ddmk"] = 49006013, // NEW: Ephesians 6:13
             ["nmks"] = 49006018, // Ephesians 6:18
+            ["knsm"] = 49006023, // NEW: Ephesians 6:23
             ["aiik"] = 50001009, // NEW: Philippians 1:9
             ["uika"] = 50001010, // NEW: Philippians 1:10
             ["nikn"] = 50001012, // Philippians 1:12
@@ -767,9 +909,17 @@ namespace navigationshurely.services
             ["ssga"] = 50001021, // Philippians 1:21
             ["gmam"] = 50001024, // Philippians 1:24
             ["aspi"] = 50001025, // Philippians 1:25
+            ["ailp"] = 50001027, // NEW: Philippians 1:27
             ["nhng"] = 50002003, // NEW: Philippians 2:3
             ["sdag"] = 50002013, // NEW: Philippians 2:13
             ["gnal"] = 50002014, // Philippians 2:14
+            ["ukmw"] = 50002015, // NEW: Philippians 2:15
+            ["nnns"] = 50002016, // NEW: Philippians 2:16
+            ["okam"] = 50002017, // NEW: Philippians 2:17
+            ["asgd"] = 50002018, // NEW: Philippians 2:18
+            ["spnl"] = 50002021, // NEW: Philippians 2:21
+            ["nnna"] = 50002022, // NEW: Philippians 2:22
+            ["duas"] = 50002024, // NEW: Philippians 2:24
             ["onal"] = 50003008, // NEW: Philippians 3:8
             ["nash"] = 50003014, // NEW: Philippians 3:14
             ["mkls"] = 50004004, // Philippians 4:4
@@ -781,6 +931,7 @@ namespace navigationshurely.services
             ["lnmb"] = 50004013, // Philippians 4:13
             ["dman"] = 50004018, // NEW: Philippians 4:18
             ["nksd"] = 51001003, // NEW: Colossians 1:3
+            ["ddkn"] = 51001009, // NEW: Colossians 1:9
             ["nnsa"] = 51001012, // Colossians 1:12
             ["nskn"] = 51001014, // Colossians 1:14
             ["nsal"] = 51001015, // Colossians 1:15
@@ -794,23 +945,36 @@ namespace navigationshurely.services
             ["umak"] = 51002002, // NEW: Colossians 2:2
             ["kpnn"] = 51002006, // NEW: Colossians 2:6
             ["nnan"] = 51002007, // NEW: Colossians 2:7
+            ["kmbs"] = 51002008, // NEW: Colossians 2:8
+            ["npau"] = 51002014, // NEW: Colossians 2:14
+            ["snah"] = 51002016, // NEW: Colossians 2:16
             ["kknm"] = 51003001, // NEW: Colossians 3:1
             ["inai"] = 51003002, // Colossians 3:2
+            ["pscn"] = 51003004, // NEW: Colossians 3:4
             ["mnkg"] = 51003012, // NEW: Colossians 3:12
             ["mnss"] = 51003016, // Colossians 3:16
             ["aaig"] = 51003017, // NEW: Colossians 3:17
             ["mamk"] = 51003022, // Colossians 3:22
             ["aiga"] = 51003023, // NEW: Colossians 3:23
             ["mkps"] = 51004002, // Colossians 4:2
+            ["ntid"] = 51004003, // NEW: Colossians 4:3
+            ["mknm"] = 51004005, // NEW: Colossians 4:5
             ["aipn"] = 51004006, // NEW: Colossians 4:6
+            ["asnk"] = 51004017, // NEW: Colossians 4:17
             ["nkls"] = 52001002, // 1 Thessalonians 1:2
             ["naiw"] = 52001003, // NEW: 1 Thessalonians 1:3
+            ["kkpk"] = 52002004, // NEW: 1 Thessalonians 2:4
+            ["gdkp"] = 52002008, // NEW: 1 Thessalonians 2:8
             ["adnd"] = 52002013, // 1 Thessalonians 2:13
             ["uash"] = 52003003, // NEW: 1 Thessalonians 3:3
             ["ddnn"] = 52003005, // NEW: 1 Thessalonians 3:5
+            ["nshl"] = 52004006, // NEW: 1 Thessalonians 4:6
             ["sttn"] = 52004007, // 1 Thessalonians 4:7
             ["kanh"] = 52004008, // NEW: 1 Thessalonians 4:8
+            ["dtsp"] = 52004009, // NEW: 1 Thessalonians 4:9
+            ["skgn"] = 52004010, // NEW: 1 Thessalonians 4:10
             ["ukmn"] = 52004012, // NEW: 1 Thessalonians 4:12
+            ["sktn"] = 52004014, // NEW: 1 Thessalonians 4:14
             ["sisn"] = 52004015, // 1 Thessalonians 4:15
             ["sapd"] = 52004016, // 1 Thessalonians 4:16
             ["kmtn"] = 52004017, // 1 Thessalonians 4:17
@@ -821,9 +985,11 @@ namespace navigationshurely.services
             ["nkmk"] = 52005004, // 1 Thessalonians 5:4
             ["skla"] = 52005005, // 1 Thessalonians 5:5
             ["hntm"] = 52005006, // 1 Thessalonians 5:6
+            ["dpma"] = 52005008, // NEW: 1 Thessalonians 5:8
             ["ddkm"] = 52005011, // NEW: 1 Thessalonians 5:11
             ["mkwp"] = 52005017, // 1 Thessalonians 5:17
             ["slnm"] = 52005018, // 1 Thessalonians 5:18
+            ["hnpa"] = 52005019, // NEW: 1 Thessalonians 5:19
             ["snal"] = 52005021, // 1 Thessalonians 5:21
             ["lnab"] = 52005022, // 1 Thessalonians 5:22
             ["apkl"] = 52005023, // NEW: 1 Thessalonians 5:23
@@ -834,10 +1000,17 @@ namespace navigationshurely.services
             ["kibn"] = 53001006, // NEW: 2 Thessalonians 1:6
             ["ddda"] = 53001011, // NEW: 2 Thessalonians 1:11
             ["uapn"] = 53001012, // NEW: 2 Thessalonians 1:12
+            ["uhkm"] = 53002002, // NEW: 2 Thessalonians 2:2
             ["hkpk"] = 53002003, // NEW: 2 Thessalonians 2:3
+            ["nsan"] = 53002004, // NEW: 2 Thessalonians 2:4
+            ["sahn"] = 53002007, // NEW: 2 Thessalonians 2:7
+            ["akmm"] = 53002008, // NEW: 2 Thessalonians 2:8
+            ["snak"] = 53002009, // NEW: 2 Thessalonians 2:9
             ["ambd"] = 53002010, // NEW: 2 Thessalonians 2:10
+            ["addi"] = 53002011, // NEW: 2 Thessalonians 2:11
             ["naap"] = 53002016, // NEW: 2 Thessalonians 2:16
             ["ntap"] = 53003003, // 2 Thessalonians 3:3
+            ["apnn"] = 53003005, // NEW: 2 Thessalonians 3:5
             ["nnmk"] = 53003008, // NEW: 2 Thessalonians 3:8
             ["snpm"] = 53003010, // NEW: 2 Thessalonians 3:10
             ["nakn"] = 54001005, // NEW: 1 Timothy 1:5
@@ -854,7 +1027,11 @@ namespace navigationshurely.services
             ["iman"] = 54002003, // 1 Timothy 2:3
             ["smid"] = 54002005, // 1 Timothy 2:5
             ["niak"] = 54002006, // 1 Timothy 2:6
+            ["ndia"] = 54002007, // NEW: 1 Timothy 2:7
             ["ikna"] = 54002008, // NEW: 1 Timothy 2:8
+            ["ksns"] = 54002010, // NEW: 1 Timothy 2:10
+            ["abmn"] = 54002011, // NEW: 1 Timothy 2:11
+            ["nhki"] = 54002012, // NEW: 1 Timothy 2:12
             ["tapk"] = 54003001, // NEW: 1 Timothy 3:1
             ["nkam"] = 54003015, // 1 Timothy 3:15
             ["awpd"] = 54003016, // NEW: 1 Timothy 3:16
@@ -862,14 +1039,22 @@ namespace navigationshurely.services
             ["hhns"] = 54004012, // NEW: 1 Timothy 4:12
             ["dkas"] = 54005008, // NEW: 1 Timothy 5:8
             ["ammn"] = 54005017, // NEW: 1 Timothy 5:17
+            ["amkn"] = 54005024, // NEW: 1 Timothy 5:24
+            ["dakn"] = 54006006, // NEW: 1 Timothy 6:6
             ["saps"] = 54006010, // NEW: 1 Timothy 6:10
+            ["nskk"] = 54006015, // NEW: 1 Timothy 6:15
             ["amss"] = 54006017, // NEW: 1 Timothy 6:17
+            ["nsmn"] = 54006018, // NEW: 1 Timothy 6:18
             ["ktna"] = 55001002, // NEW: 2 Timothy 1:2
             ["nkkm"] = 55001004, // NEW: 2 Timothy 1:4
             ["nika"] = 55001005, // NEW: 2 Timothy 1:5
             ["ddai"] = 55001006, // NEW: 2 Timothy 1:6
             ["shtb"] = 55001007, // 2 Timothy 1:7
             ["hmni"] = 55001008, // NEW: 2 Timothy 1:8
+            ["nssa"] = 55001009, // NEW: 2 Timothy 1:9
+            ["nsbn"] = 55001011, // NEW: 2 Timothy 1:11
+            ["ddnd"] = 55001012, // NEW: 2 Timothy 1:12
+            ["imam"] = 55001013, // NEW: 2 Timothy 1:13
             ["inmn"] = 55001015, // 2 Timothy 1:15
             ["knsn"] = 55001017, // 2 Timothy 1:17
             ["pnsn"] = 55001018, // 2 Timothy 1:18
@@ -881,12 +1066,17 @@ namespace navigationshurely.services
             ["imas"] = 55002007, // 2 Timothy 2:7
             ["amsj"] = 55002008, // 2 Timothy 2:8
             ["pmhn"] = 55002015, // 2 Timothy 2:15
+            ["dima"] = 55002016, // NEW: 2 Timothy 2:16
+            ["nmtt"] = 55002018, // NEW: 2 Timothy 2:18
             ["kasn"] = 55002021, // NEW: 2 Timothy 2:21
+            ["dlma"] = 55002022, // NEW: 2 Timothy 2:22
+            ["ntma"] = 55002023, // NEW: 2 Timothy 2:23
             ["amsp"] = 55003015, // NEW: 2 Timothy 3:15
             ["uatn"] = 55003017, // NEW: 2 Timothy 3:17
             ["nanm"] = 55004007, // 2 Timothy 4:7
             ["ainp"] = 55004018, // NEW: 2 Timothy 4:18
             ["spsb"] = 56001002, // NEW: Titus 1:2
+            ["nnst"] = 56001009, // NEW: Titus 1:9
             ["apia"] = 56001013, // Titus 1:13
             ["nhms"] = 56001014, // Titus 1:14
             ["smal"] = 56001015, // Titus 1:15
@@ -897,6 +1087,8 @@ namespace navigationshurely.services
             ["mmms"] = 56002005, // Titus 2:5
             ["imrn"] = 56002006, // Titus 2:6
             ["pnmn"] = 56002008, // Titus 2:8
+            ["imsm"] = 56002009, // NEW: Titus 2:9
+            ["hmkm"] = 56002010, // NEW: Titus 2:10
             ["nhym"] = 56002013, // NEW: Titus 2:13
             ["imsk"] = 56003001, // NEW: Titus 3:1
             ["nhmn"] = 56003002, // NEW: Titus 3:2
@@ -905,11 +1097,14 @@ namespace navigationshurely.services
             ["nhds"] = 56003005, // NEW: Titus 3:5
             ["nkin"] = 56003006, // NEW: Titus 3:6
             ["usps"] = 56003007, // NEW: Titus 3:7
+            ["atmm"] = 56003010, // NEW: Titus 3:10
+            ["apdn"] = 56003014, // NEW: Titus 3:14
             ["spnb"] = 57001001, // NEW: Philemon 1:1
             ["nals"] = 57001004, // NEW: Philemon 1:4
             ["spkn"] = 57001005, // NEW: Philemon 1:5
             ["kbkc"] = 57001008, // NEW: Philemon 1:8
             ["gmas"] = 57001009, // NEW: Philemon 1:9
+            ["iksi"] = 57001010, // NEW: Philemon 1:10
             ["nnup"] = 57001011, // NEW: Philemon 1:11
             ["nsap"] = 57001012, // NEW: Philemon 1:12
             ["niks"] = 57001013, // NEW: Philemon 1:13
@@ -918,11 +1113,14 @@ namespace navigationshurely.services
             ["nhna"] = 57001016, // Philemon 1:16
             ["kana"] = 57001017, // Philemon 1:17
             ["nksn"] = 57001018, // Philemon 1:18
+            ["aspn"] = 57001019, // NEW: Philemon 1:19
             ["okmn"] = 57001020, // Philemon 1:20
             ["kssp"] = 57001021, // Philemon 1:21
             ["dbal"] = 57001022, // Philemon 1:22
             ["abna"] = 57001025, // Philemon 1:25
+            ["pssn"] = 58001003, // NEW: Hebrews 1:3
             ["knnp"] = 58002001, // NEW: Hebrews 2:1
+            ["pnss"] = 58002018, // NEW: Hebrews 2:18
             ["dscg"] = 58003006, // NEW: Hebrews 3:6
             ["mntn"] = 58004011, // Hebrews 4:11
             ["awan"] = 58004013, // Hebrews 4:13
@@ -941,13 +1139,29 @@ namespace navigationshurely.services
             ["spsn"] = 58011007, // Hebrews 11:7
             ["sina"] = 58011010, // Hebrews 11:10
             ["aspa"] = 58011013, // NEW: Hebrews 11:13
+            ["spns"] = 58011017, // NEW: Hebrews 11:17
+            ["smby"] = 58011018, // NEW: Hebrews 11:18
+            ["spin"] = 58011028, // NEW: Hebrews 11:28
+            ["sphn"] = 58011031, // NEW: Hebrews 11:31
+            ["nnbn"] = 58011034, // NEW: Hebrews 11:34
+            ["tnmb"] = 58011035, // NEW: Hebrews 11:35
+            ["sppp"] = 58011037, // NEW: Hebrews 11:37
+            ["nsmy"] = 58011038, // NEW: Hebrews 11:38
+            ["nind"] = 58011040, // NEW: Hebrews 11:40
             ["kynt"] = 58012001, // Hebrews 12:1
             ["nmns"] = 58012002, // Hebrews 12:2
             ["sjas"] = 58013008, // NEW: Hebrews 13:8
             ["dapn"] = 58013016, // NEW: Hebrews 13:16
+            ["nadn"] = 58013020, // NEW: Hebrews 13:20
+            ["ssna"] = 59001001, // NEW: James 1:1
             ["mkka"] = 59001002, // NEW: James 1:2
             ["nknn"] = 59001005, // James 1:5
             ["nhsm"] = 59001006, // James 1:6
+            ["shin"] = 59001007, // NEW: James 1:7
+            ["atmd"] = 59001008, // NEW: James 1:8
+            ["aamd"] = 59001010, // NEW: James 1:10
+            ["hsns"] = 59001013, // NEW: James 1:13
+            ["kabt"] = 59001014, // NEW: James 1:14
             ["kmak"] = 59001015, // James 1:15
             ["hkpm"] = 59001016, // James 1:16
             ["abmk"] = 59001017, // James 1:17
@@ -962,6 +1176,9 @@ namespace navigationshurely.services
             ["mkky"] = 59002001, // James 2:1
             ["skmp"] = 59002002, // James 2:2
             ["dnmm"] = 59002005, // NEW: James 2:5
+            ["aais"] = 59002016, // NEW: James 2:16
+            ["gdna"] = 59002017, // NEW: James 2:17
+            ["skpa"] = 59002026, // NEW: James 2:26
             ["nakb"] = 59003017, // NEW: James 3:17
             ["aabn"] = 59003018, // NEW: James 3:18
             ["pnks"] = 59004007, // James 4:7
@@ -974,8 +1191,12 @@ namespace navigationshurely.services
             ["mnks"] = 59005016, // James 5:16
             ["aann"] = 59005020, // NEW: James 5:20
             ["pnad"] = 60001003, // NEW: 1 Peter 1:3
+            ["simd"] = 60001004, // NEW: 1 Peter 1:4
             ["niai"] = 60001006, // NEW: 1 Peter 1:6
             ["uaps"] = 60001007, // NEW: 1 Peter 1:7
+            ["nhnn"] = 60001008, // NEW: 1 Peter 1:8
+            ["nita"] = 60001009, // NEW: 1 Peter 1:9
+            ["tspn"] = 60001010, // NEW: 1 Peter 1:10
             ["nisk"] = 60001012, // 1 Peter 1:12
             ["kiba"] = 60001013, // 1 Peter 1:13
             ["ngnm"] = 60001014, // 1 Peter 1:14
@@ -986,12 +1207,17 @@ namespace navigationshurely.services
             ["knmd"] = 60001019, // 1 Peter 1:19
             ["nnnn"] = 60001020, // 1 Peter 1:20
             ["nspn"] = 60001021, // 1 Peter 1:21
+            ["dasn"] = 60001025, // NEW: 1 Peter 1:25
             ["gnms"] = 60002002, // NEW: 1 Peter 2:2
             ["dkil"] = 60002009, // 1 Peter 2:9
             ["mmik"] = 60002011, // NEW: 1 Peter 2:11
+            ["ngnk"] = 60002016, // NEW: 1 Peter 2:16
+            ["inal"] = 60002017, // NEW: 1 Peter 2:17
+            ["makm"] = 60002018, // NEW: 1 Peter 2:18
             ["nsra"] = 60002024, // NEW: 1 Peter 2:24
             ["kkla"] = 60003008, // NEW: 1 Peter 3:8
             ["kiab"] = 60003015, // 1 Peter 3:15
+            ["sscm"] = 60003018, // NEW: 1 Peter 3:18
             ["nusl"] = 60004008, // NEW: 1 Peter 4:8
             ["nask"] = 60004010, // NEW: 1 Peter 4:10
             ["niis"] = 60005007, // 1 Peter 5:7
@@ -1013,9 +1239,16 @@ namespace navigationshurely.services
             ["nmnd"] = 61002001, // 2 Peter 2:1
             ["amms"] = 61002002, // 2 Peter 2:2
             ["skpn"] = 61002020, // NEW: 2 Peter 2:20
+            ["umna"] = 61003002, // NEW: 2 Peter 3:2
+            ["ssnn"] = 61003005, // NEW: 2 Peter 3:5
+            ["nspd"] = 61003006, // NEW: 2 Peter 3:6
+            ["nasn"] = 61003007, // NEW: 2 Peter 3:7
             ["dhnk"] = 61003008, // NEW: 2 Peter 3:8
             ["hmap"] = 61003009, // NEW: 2 Peter 3:9
+            ["ddaa"] = 61003010, // NEW: 2 Peter 3:10
+            ["naha"] = 61003012, // NEW: 2 Peter 3:12
             ["knmm"] = 61003014, // NEW: 2 Peter 3:14
+            ["dmks"] = 61003018, // NEW: 2 Peter 3:18
             ["nktn"] = 62001007, // NEW: 1 John 1:7
             ["ksnt"] = 62001008, // NEW: 1 John 1:8
             ["mkma"] = 62002001, // NEW: 1 John 2:1
@@ -1028,13 +1261,21 @@ namespace navigationshurely.services
             ["nans"] = 62002011, // 1 John 2:11
             ["kskm"] = 62002012, // 1 John 2:12
             ["kasm"] = 62002014, // 1 John 2:14
+            ["hnia"] = 62002015, // NEW: 1 John 2:15
             ["aasa"] = 62002017, // 1 John 2:17
             ["mmai"] = 62002018, // 1 John 2:18
             ["hkks"] = 62002021, // 1 John 2:21
+            ["agnk"] = 62003008, // NEW: 1 John 3:8
+            ["asin"] = 62003009, // NEW: 1 John 3:9
+            ["hgnc"] = 62003012, // NEW: 1 John 3:12
             ["dnna"] = 62003016, // 1 John 3:16
             ["dasm"] = 62003017, // 1 John 3:17
+            ["mmkt"] = 62003021, // NEW: 1 John 3:21
+            ["aaah"] = 62003022, // NEW: 1 John 3:22
+            ["aiak"] = 62003023, // NEW: 1 John 3:23
             ["mmmt"] = 62004007, // 1 John 4:7
             ["ahua"] = 62004008, // 1 John 4:8
+            ["naph"] = 62004010, // NEW: 1 John 4:10
             ["wtsp"] = 62004018, // NEW: 1 John 4:18
             ["siap"] = 62005003, // NEW: 1 John 5:3
             ["sasi"] = 62005004, // NEW: 1 John 5:4
@@ -1044,7 +1285,9 @@ namespace navigationshurely.services
             ["aian"] = 62005014, // 1 John 5:14
             ["lnka"] = 62005017, // 1 John 5:17
             ["amsh"] = 63001001, // NEW: 2 John 1:1
+            ["askn"] = 63001002, // NEW: 2 John 1:2
             ["alnn"] = 63001004, // NEW: 2 John 1:4
+            ["smmn"] = 63001007, // NEW: 2 John 1:7
             ["ksid"] = 63001010, // NEW: 2 John 1:10
             ["sabs"] = 63001011, // NEW: 2 John 1:11
             ["aman"] = 63001013, // NEW: 2 John 1:13
@@ -1054,13 +1297,16 @@ namespace navigationshurely.services
             ["mgma"] = 64001005, // NEW: 3 John 1:5
             ["sdsp"] = 64001007, // NEW: 3 John 1:7
             ["nnnt"] = 64001008, // NEW: 3 John 1:8
+            ["asni"] = 64001009, // NEW: 3 John 1:9
             ["kkpa"] = 64001010, // NEW: 3 John 1:10
             ["mhmt"] = 64001011, // NEW: 3 John 1:11
             ["sdap"] = 64001012, // NEW: 3 John 1:12
             ["mmba"] = 64001013, // 3 John 1:13
             ["dikm"] = 64001014, // 3 John 1:14
+            ["sjna"] = 65001001, // NEW: Jude 1:1
             ["smit"] = 65001004, // NEW: Jude 1:4
             ["nkni"] = 65001005, // NEW: Jude 1:5
+            ["aama"] = 65001006, // NEW: Jude 1:6
             ["gdas"] = 65001007, // NEW: Jude 1:7
             ["daam"] = 65001009, // NEW: Jude 1:9
             ["dami"] = 65001010, // NEW: Jude 1:10
@@ -1091,17 +1337,30 @@ namespace navigationshurely.services
             ["asan"] = 66003001, // Revelation 3:1
             ["mkap"] = 66003002, // Revelation 3:2
             ["amad"] = 66003005, // NEW: Revelation 3:5
+            ["adnm"] = 66003011, // NEW: Revelation 3:11
             ["amag"] = 66003012, // NEW: Revelation 3:12
             ["mkop"] = 66004011, // NEW: Revelation 4:11
             ["nnnm"] = 66005012, // NEW: Revelation 5:12
+            ["pnmb"] = 66007009, // NEW: Revelation 7:9
             ["annt"] = 66007010, // NEW: Revelation 7:10
             ["sacn"] = 66007017, // NEW: Revelation 7:17
+            ["ahai"] = 66011015, // NEW: Revelation 11:15
             ["askd"] = 66012011, // NEW: Revelation 12:11
             ["apna"] = 66021004, // Revelation 21:4
+            ["ayns"] = 66021005, // NEW: Revelation 21:5
+            ["amam"] = 66021007, // NEW: Revelation 21:7
+            ["nsmd"] = 66021008, // NEW: Revelation 21:8
+            ["adai"] = 66021009, // NEW: Revelation 21:9
+            ["adna"] = 66021010, // NEW: Revelation 21:10
+            ["nmim"] = 66021012, // NEW: Revelation 21:12
+            ["aalp"] = 66021021, // NEW: Revelation 21:21
+            ["ahan"] = 66021022, // NEW: Revelation 21:22
+            ["aaba"] = 66021023, // NEW: Revelation 21:23
+            ["namp"] = 66022012, // NEW: Revelation 22:12
+            ["mann"] = 66022014, // NEW: Revelation 22:14
             ["aaea"] = 66022017, // NEW: Revelation 22:17
             ["assm"] = 66022020, // Revelation 22:20
         };
-
 
 
         private static readonly Dictionary<int, string> ReverseSCommands = SCommands.ToDictionary(x => x.Value, x => x.Key);
@@ -1398,7 +1657,9 @@ namespace navigationshurely.services
                             validity = EntireCommandStatus.Incomplete;
                             return validity;
                         case '+':
-                            return BackgroundChange();
+                            return BackgroundChange(Direct.Up);
+                        case '\u0003':
+                            return BackgroundChange(Direct.Down);
                         default:
                             break;
                     }
@@ -1417,9 +1678,16 @@ namespace navigationshurely.services
             return NotValid();
         }
 
-        private EntireCommandStatus BackgroundChange()
+        private EntireCommandStatus BackgroundChange(Direct direction)
         {
-            command = new Command { Mode = state, Direction = Direct.Absolute, Quantity = 700 };
+            if (direction == Direct.Up)
+            {
+                command = new Command { Mode = state, Direction = Direct.Absolute, Quantity = 700 };
+            }
+            else
+            {
+                command = new Command { Mode = state, Direction = Direct.Absolute, Quantity = 800 };
+            }
             validity = EntireCommandStatus.Valid;
             return validity;
         }
@@ -1455,6 +1723,24 @@ namespace navigationshurely.services
                 validity = EntireCommandStatus.Valid;
                 return validity;
             }
+            else if (k == '\u0003')
+            {
+                commandString = "";
+                state = state switch
+                {
+                    State.Filter => State.Query,
+                    State.Choice => State.Filter,
+                    State.Query => State.Choice,
+                    _ => State.Query
+                };
+                if (state == State.Query)
+                {
+                    EnterQueryState();
+                }
+
+                validity = EntireCommandStatus.Valid;
+                return validity;
+            }
 
             //query state
             if (state == State.Query)
@@ -1475,6 +1761,27 @@ namespace navigationshurely.services
                         return NotValid();
                     }
                     searchQuery = searchQuery[..^1];
+                    commandString = "/" + searchQuery;
+                    validity = EntireCommandStatus.Incomplete;
+                    return validity;
+                }
+                else if (k == '\u0006')
+                {
+                    if (searchQuery == "")
+                    {
+                        return NotValid();
+                    }
+
+                    // Remove trailing whitespace first.
+                    searchQuery = searchQuery.TrimEnd();
+
+                    // Remove characters up to the previous whitespace.
+                    int lastSpace = searchQuery.LastIndexOf(' ');
+
+                    searchQuery = lastSpace >= 0
+                        ? searchQuery[..lastSpace]
+                        : "";
+
                     commandString = "/" + searchQuery;
                     validity = EntireCommandStatus.Incomplete;
                     return validity;
@@ -1647,12 +1954,14 @@ namespace navigationshurely.services
                 activeFilter = null;
                 return NotValid();
             }
+
+            //choice mode
             else if (state == State.Choice)
             {
+                //commandString = "*" + choiceCommandBuffer;
+
                 if (normalChoosingMode)
                 {
-                    commandString = "";
-
                     if (parseState != ParseState.Start && parseState != ParseState.ReadingQuantifier)
                     {
                         if (k == 'g')
@@ -1661,7 +1970,6 @@ namespace navigationshurely.services
                             validity = EntireCommandStatus.Valid;
                             return validity;
                         }
-
                         return NotValid();
                     }
 
@@ -1686,6 +1994,16 @@ namespace navigationshurely.services
                             validity = EntireCommandStatus.Valid;
                             return validity;
 
+                        case '\u0001':
+                            command = new Command { Mode = state, Direction = Direct.Down, Quantity = 40 };
+                            validity = EntireCommandStatus.Valid;
+                            return validity;
+
+                        case '\u0002':
+                            command = new Command { Mode = state, Direction = Direct.Up, Quantity = 40 };
+                            validity = EntireCommandStatus.Valid;
+                            return validity;
+
                         case 'g':
                             parseState = ParseState.FilterBookAlias;
                             commandString += k;
@@ -1699,13 +2017,14 @@ namespace navigationshurely.services
 
                         case 'i':
                             normalChoosingMode = false;
-                            commandString = choiceCommandBuffer;
+                            commandString = "*" + choiceCommandBuffer;
                             validity = EntireCommandStatus.Valid;
                             return validity;
 
                         case 'c':
                             normalChoosingMode = false;
                             choiceCommandBuffer = "";
+                            commandString = "*";
                             validity = EntireCommandStatus.Valid;
                             return validity;
 
@@ -1856,10 +2175,16 @@ namespace navigationshurely.services
 
         private EntireCommandStatus FeedMovement(char k)
         {
+            if (k == '.' && parseState != ParseState.ReadingQuantifier)
+            {
+                quantifier = previousQuantifier;
+                return CompleteMovement(Direct.Absolute);
+            }
             //user (may have) typed an alias to a number
             if (Quantifiers.TryGetValue(k, out int digit)) 
             {
                 quantifier = (quantifier) * 10 + digit;
+                previousQuantifier = quantifier;
                 parseState = ParseState.ReadingQuantifier;
                 validity = EntireCommandStatus.Incomplete;
                 return validity;
@@ -1869,6 +2194,7 @@ namespace navigationshurely.services
             if (char.IsDigit(k))
             {
                 quantifier = (quantifier) * 10 + (int)char.GetNumericValue(k);
+                previousQuantifier = quantifier;
                 parseState = ParseState.ReadingQuantifier;
                 validity = EntireCommandStatus.Incomplete;
                 return validity;
@@ -1976,7 +2302,7 @@ namespace navigationshurely.services
 
         private EntireCommandStatus ShipOutChoiceCommand(string  searchText)
         {
-            commandString = searchText;
+            commandString = "*" + searchText;
             command = new Command { Mode = state, Direction = Direct.Absolute, Quantity = 1, SearchText = searchText };
             validity = EntireCommandStatus.Valid;
             return validity;

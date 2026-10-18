@@ -32,7 +32,7 @@ public class BibleNavigator
     public event Action<bool>? SearchUiVisibilityChanged;
     public event Action<bool>? PressEnterVisibilityChange;
     public event Action? UserScrolledSomewhere;
-    public event Action? ChangeBackgroundPlease;
+    public event Action<Direct>? ChangeBackgroundPlease;
 
     private EntireCommandStatus validityCheck;
     public Verse CurrentVerse { get; private set; }
@@ -217,9 +217,11 @@ public class BibleNavigator
                         break;
 
                     case 700:
-                        ChangeBackgroundPlease?.Invoke();
+                        ChangeBackgroundPlease?.Invoke(Direct.Up);
                         break;
-
+                    case 800:
+                        ChangeBackgroundPlease?.Invoke(Direct.Down);
+                        break;
                     default:
                         if (command.Quantity > 127)
                             AliasPosition(command.Quantity);

@@ -168,30 +168,37 @@ namespace navigationshurely
             AdjustVerseFontSize();
         }
 
-        private void ChangeBackgroundImage()
+        private void ChangeBackgroundImage(Direct direction)
         {
-
-            // Option B: Relative path if the image is set as Content / Copy if newer
-            backgroundImagePath = backgroundImagePath switch
+            string[] backgrounds =
             {
-                "images/dbw59.jpg" => "images/dbw02.jpg",
-                "images/dbw02.jpg" => "images/dbw04.jpg",
-                "images/dbw04.jpg" => "images/dbw08.jpg",
-                "images/dbw08.jpg" => "images/dbw16.jpg",
-                "images/dbw16.jpg" => "images/dbw17.jpg",
-                "images/dbw17.jpg" => "images/dbw59.jpg",
-                _ => "images/dbw59.jpg"
+        "images/dbw59.jpg",
+        "images/dbw02.jpg",
+        "images/dbw04.jpg",
+        "images/dbw08.jpg",
+        "images/dbw16.jpg",
+        "images/dbw17.jpg"
+    };
+
+            int index = Array.IndexOf(backgrounds, backgroundImagePath);
+
+            if (index < 0)
+                index = 0;
+
+            int step = direction switch
+            {
+                Direct.Up => 1,
+                Direct.Down => -1,
+                _ => 0
             };
 
-            var uri = new Uri(backgroundImagePath, UriKind.Relative);
+            index = (index + step + backgrounds.Length)
+                % backgrounds.Length;
 
-            var bitmap = new BitmapImage(uri);
+            backgroundImagePath = backgrounds[index];
 
-            // Assign the new image source to the existing XAML brush
-            BackgroundBrush.ImageSource = bitmap;
-
-            // OR replace the window background entirely in code:
-            // this.Background = new ImageBrush(bitmap);
+            BackgroundBrush.ImageSource = new BitmapImage(
+                new Uri(backgroundImagePath, UriKind.Relative));
         }
 
         private void OpenHelpWindow()
