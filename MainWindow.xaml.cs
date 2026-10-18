@@ -237,15 +237,6 @@ namespace navigationshurely
             verseBox.FontSize = low;
         }
 
-        private void verseBox_TextChanged(object sender, TextChangedEventArgs e) {
-            AdjustVerseFontSize();
-        }
-
-        private void titleBox_TextChanged(object sender, TextChangedEventArgs e)
-        {
-
-        }
-
         private void CopyVerse()
         {
             Clipboard.SetText(verseBox.Text);

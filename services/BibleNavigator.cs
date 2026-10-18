@@ -289,6 +289,8 @@ public class BibleNavigator
         int versePart = CurrentVerse.VerseNumber;
         return bookPart * 1000000 + chapterPart * 1000 + versePart;
     }
+
+
     // =========================================================
     // SEARCH FUNCTIONALITY
     // =========================================================
