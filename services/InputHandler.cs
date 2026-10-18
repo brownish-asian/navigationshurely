@@ -9,7 +9,7 @@ namespace navigationshurely.Services
     public class InputHandler
     {
         public event Action<bool>? SearchUiVisibilityChanged;
-
+        public static event Action? ExitApplication;
         private Linguist linguist = new();
 
         public InputHandler()
@@ -75,7 +75,8 @@ namespace navigationshurely.Services
                         return true;
 
                     case Key.Q:
-                        character = '\u0005'; 
+                        character = '\u0005';
+                        ExitApplication.Invoke();
                         return true;
 
                     case Key.B:

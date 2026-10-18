@@ -46,6 +46,7 @@ namespace navigationshurely
             navigator.FiltersHaveChanged += DisplayFilters;
             navigator.ChangeBackgroundPlease += ChangeBackgroundImage;
 
+            InputHandler.ExitApplication += CloseApplication;
             inputHandler.SearchUiVisibilityChanged += SetSearchUiRequestedVisibility;
             navigator.SearchUiVisibilityChanged += SetGlobalUiVisibility;
             navigator.PressEnterVisibilityChange += PressEnterSearchVisibility;
@@ -124,6 +125,10 @@ namespace navigationshurely
             }
         }
 
+        private void CloseApplication()
+        {
+            Application.Current.Shutdown();
+        }
         private void PressEnterSearchVisibility(bool visible)
         {
             Visibility visibility = globalUiVisible && visible? Visibility.Visible : Visibility.Collapsed;
