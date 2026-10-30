@@ -63,11 +63,11 @@
             <StackPanel Margin="60">
                 <TextBlock Text="NAVIGATIONSHURELY" Foreground="White" FontSize="36" FontWeight="Bold" Margin="0,0,0,10"/>
                 <TextBlock Text="Command Grammar &amp; Instruction Manual" Foreground="#AAAAAA" FontSize="20" Margin="0,0,0,10"/>
-                <TextBlock Text="A complete keyboard reference for Bible navigation, special commands, search filters and predefined shortcuts." Foreground="#CCCCCC" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,24"/>
+                <TextBlock Text="A complete keyboard reference for Bible navigation, special commands, search filters and predefined shortcuts. Press Ctrl+Q to exit the application." Foreground="#CCCCCC" FontSize="16" TextWrapping="Wrap" Margin="0,0,0,24"/>
 
                 <TextBlock Style="{StaticResource SectionHeader}" Text="1. BASIC RULES AND NOTATION"/>
-                <TextBlock Style="{StaticResource BodyText}" Text="NavigationShurely is a keyboard-driven Bible navigator. Commands are entered by pressing keys in sequence, and their meaning depends on the active navigation or search mode. The application opens in BOOK mode at Genesis 1:1."/>
-                <TextBlock Style="{StaticResource BodyText}" Text="Unless otherwise stated, press command keys consecutively. For example, 3j means press 3 and then j; do not insert a space between them. Alphabetic command keys are converted to lowercase, so uppercase letters are not separate commands."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="NavigationShurely is a keyboard-driven Bible navigator. Commands are entered by pressing keys in sequence, and their meaning depends on the active navigation or search mode. The input parser starts in BOOK mode. The application restores the saved Bible translation, last verse position, background image and saved marks when those settings are available."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="Unless otherwise stated, press command keys consecutively. For example, 3j means press 3 and then j; do not insert a space between them."/>
                 <Grid Margin="0,0,0,24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="180"/>
@@ -564,6 +564,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Grid.Column="0" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="8,8,8,8">
                         <TextBlock Style="{StaticResource TableHeader}" Text="Command"/>
@@ -637,9 +638,18 @@
                     <Border Grid.Row="7" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Copies the current verse reference/title to the clipboard."/>
                     </Border>
+                    <Border Grid.Row="8" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";yy"/>
+                    </Border>
+                    <Border Grid.Row="8" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Copy verse title and text"/>
+                    </Border>
+                    <Border Grid.Row="8" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Copies the current reference/title, a newline, and the verse text to the clipboard."/>
+                    </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource BodyText}" Text="History navigation is different from moving between verses: it returns to locations visited earlier or later in the session. The history stores up to the most recent 100 positions. A leading Space is not required and is not a general command prefix; use ;f and ;e, not [Space];f or [Space];e."/>
-                <TextBlock Style="{StaticResource BodyText}" Text="Note: Any and all commands function as they should regardless of whether the global toggle of the UI is set to visible"/>
+                <TextBlock Style="{StaticResource BodyText}" Text="Commands continue to work while the on-screen UI is hidden. The ;e command changes UI visibility; it does not disable keyboard input."/>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Verse aliases"/>
                 <TextBlock Style="{StaticResource BodyText}" Text="Syntax: ; followed by one exact four-letter alias. A valid alias navigates immediately to its predefined target verse. Each code is formed from the initial letters of the verse’s first four words in the source text used to build the dictionary. The exact code-to-verse mapping is fixed; use Appendix B rather than guessing an alias for an unlisted verse."/>
                 <Grid Margin="0,0,0,24">
@@ -707,9 +717,9 @@
                     </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Set a mark and return to it"/>
-                <TextBlock Style="{StaticResource BodyText}" Text="Marks save the current verse position under one character. They are available for the current application session and are not documented as persistent across restarts."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="Marks save the current verse position under one identifier character. The main window saves the marks with the application settings and restores them on startup."/>
                 <TextBlock Style="{StaticResource ExampleText}" Text=";qX    set mark X at the current verse&#10;'X     return to mark X"/>
-                <TextBlock Style="{StaticResource BodyText}" Text="For example, enter ;qa consecutively to set mark a, then enter 'a to return to it. There is no Space or Enter between the apostrophe and identifier. X can be any identifier character supported by the keyboard input. Returning to an unset mark does not navigate successfully."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="For example, enter ;qa consecutively to set mark a, then enter 'a to return to it. There is no Space or Enter between the apostrophe and identifier. After the apostrophe, the app displays the marks list while it waits for the identifier; the list hides after you enter one character. X can be any identifier character supported by the keyboard input. Returning to an unset mark does not navigate successfully."/>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Semicolon command summary"/>
                 <Grid Margin="0,0,0,24">
                     <Grid.ColumnDefinitions>
@@ -760,10 +770,10 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Move forward/backward in history"/>
                     </Border>
                     <Border Grid.Row="5" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";yv / ;yt"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";yv / ;yt / ;yy"/>
                     </Border>
                     <Border Grid.Row="5" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Copy verse text or verse title"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Copy verse text, title, or both"/>
                     </Border>
                     <Border Grid.Row="6" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text=";qX"/>
@@ -825,7 +835,7 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="FILTER"/>
                     </Border>
                     <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Set restrictions for book, chapter, verse, testament, language and word order."/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Set restrictions for book, chapter, verse, testament, language, word order and case sensitivity."/>
                     </Border>
                     <Border Grid.Row="3" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="CHOICE"/>
@@ -836,7 +846,7 @@
                 </Grid>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Move between search modes"/>
                 <TextBlock Style="{StaticResource ExampleText}" Text="QUERY  →  FILTER  →  CHOICE  →  QUERY"/>
-                <TextBlock Style="{StaticResource BodyText}" Text="Press Tab to cycle through the three search modes. Search mode stays active while cycling. Press / again to leave Search mode and restore the navigation mode that was active before searching. While Search mode is active, / is the exit key, not an ordinary query character."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="Press Tab to cycle QUERY → FILTER → CHOICE → QUERY. Press Shift+Tab to cycle in reverse: QUERY → CHOICE → FILTER → QUERY. Search mode stays active while cycling. Press / again to leave Search mode and restore the navigation mode that was active before searching. While Search mode is active, / is the exit key, not an ordinary query character."/>
                 <TextBlock Style="{StaticResource SectionHeader}" Text="9. QUERY MODE"/>
                 <TextBlock Style="{StaticResource BodyText}" Text="Enter the text to search for. The query input is separate from filters; do not enter a full Bible reference, colon-separated address or comma-separated filter expression in the query."/>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Enter and submit a query"/>
@@ -848,6 +858,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -881,27 +892,33 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Remove the last query character."/>
                     </Border>
                     <Border Grid.Row="4" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Enter"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Word-delete control"/>
                     </Border>
                     <Border Grid.Row="4" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Submit the query and move to FILTER mode."/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Trim trailing spaces, then remove the final word. If there is no earlier space, clear the query. The physical key binding is set by the input handler."/>
                     </Border>
                     <Border Grid.Row="5" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Tab"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Enter"/>
                     </Border>
                     <Border Grid.Row="5" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Move to FILTER mode without submitting the query."/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Submit the query and move to FILTER mode."/>
                     </Border>
                     <Border Grid.Row="6" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="/"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Tab"/>
                     </Border>
                     <Border Grid.Row="6" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Move to FILTER mode without submitting the query."/>
+                    </Border>
+                    <Border Grid.Row="7" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="/"/>
+                    </Border>
+                    <Border Grid.Row="7" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Exit Search mode and restore the previous navigation mode."/>
                     </Border>
                 </Grid>
-                <TextBlock Style="{StaticResource BodyText}" Text="Alphabetic input is converted to lowercase. Other enterable characters depend on the application’s keyboard mappings."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="The m filter controls capitalization: mt requires case-sensitive matching, while mf ignores case. Other enterable characters and the physical key binding for the word-delete control depend on the application’s input handler."/>
                 <TextBlock Style="{StaticResource SectionHeader}" Text="10. FILTER MODE"/>
-                <TextBlock Style="{StaticResource BodyText}" Text="FILTER mode narrows a Bible-text search. Select a filter by entering its initial letter, then enter the value directly after it. There is no colon, equals sign or other separator between the filter letter and its value."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="FILTER mode narrows a Bible-text search. Select a filter by entering its initial letter, then enter the value directly after it. There is no colon, equals sign or other separator between the filter letter and its value. Filter values are completed as soon as their required characters are entered; numeric chapter and verse values end with j, k or Space."/>
                 <Grid Margin="0,0,0,24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="70"/>
@@ -909,6 +926,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -979,6 +997,15 @@
                     </Border>
                     <Border Grid.Row="6" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Choose Any order or Strict order."/>
+                    </Border>
+                    <Border Grid.Row="7" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="m"/>
+                    </Border>
+                    <Border Grid.Row="7" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Match case"/>
+                    </Border>
+                    <Border Grid.Row="7" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Choose case-sensitive or case-insensitive matching."/>
                     </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource SubHeader}" Text="10.1 Book filter — b"/>
@@ -1176,13 +1203,45 @@
                     </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource BodyText}" Text="These are the two supported word-order search options. The labels are exactly Any order and Strict order."/>
-                <TextBlock Style="{StaticResource SubHeader}" Text="10.7 Default filters"/>
+                <TextBlock Style="{StaticResource SubHeader}" Text="10.7 Match-case filter — m"/>
+                <TextBlock Style="{StaticResource BodyText}" Text="The match-case filter controls whether uppercase and lowercase letters must match the query exactly. It is independent of the displayed Bible translation."/>
                 <Grid Margin="0,0,0,24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="180"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Grid.Column="0" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="8,8,8,8">
+                        <TextBlock Style="{StaticResource TableHeader}" Text="Input"/>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="8,8,8,8">
+                        <TextBlock Style="{StaticResource TableHeader}" Text="Meaning"/>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="mt"/>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Match case: uppercase and lowercase must match the query."/>
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="mf"/>
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Ignore case: match regardless of capitalization."/>
+                    </Border>
+                </Grid>
+                <TextBlock Style="{StaticResource SubHeader}" Text="10.8 Default filters"/>
+                <Grid Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -1233,8 +1292,14 @@
                     <Border Grid.Row="6" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="No restriction"/>
                     </Border>
+                    <Border Grid.Row="7" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Match case"/>
+                    </Border>
+                    <Border Grid.Row="7" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Off (mf; case-insensitive)"/>
+                    </Border>
                 </Grid>
-                <TextBlock Style="{StaticResource SubHeader}" Text="10.8 Apply or rerun a search"/>
+                <TextBlock Style="{StaticResource SubHeader}" Text="10.9 Apply or rerun a search"/>
                 <TextBlock Style="{StaticResource BodyText}" Text="Press Enter in FILTER mode to execute or rerun the search with the current query and filters. Results appear in the results list; the interface indicates when no results are found. An on-screen area displays the active filters so you can review the restrictions currently applied."/>
                 <TextBlock Style="{StaticResource SectionHeader}" Text="11. CHOICE MODE"/>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Navigate and select a result"/>
@@ -1300,27 +1365,39 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Move up 20 results."/>
                     </Border>
                     <Border Grid.Row="7" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Enter"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Ctrl+F"/>
                     </Border>
                     <Border Grid.Row="7" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Navigate to the currently selected verse."/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Move down 40 results."/>
                     </Border>
                     <Border Grid.Row="8" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="gg"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Ctrl+B"/>
                     </Border>
                     <Border Grid.Row="8" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Navigate to the top of the list"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Move up 40 results."/>
                     </Border>
                     <Border Grid.Row="9" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="G"/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Enter"/>
                     </Border>
                     <Border Grid.Row="9" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Navigate to the currently selected verse."/>
+                    </Border>
+                    <Border Grid.Row="10" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="gg"/>
+                    </Border>
+                    <Border Grid.Row="10" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Navigate to the top of the list"/>
+                    </Border>
+                    <Border Grid.Row="11" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="G"/>
+                    </Border>
+                    <Border Grid.Row="11" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Navigate to the end of the list"/>
                     </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource BodyText}" Text="N can use digits, letter-to-digit codes, or a mixture. Selection cannot move past the first or last result. If the search has no results, there is no verse to select. Enter in CHOICE selects and navigates to the highlighted verse; it does not submit a query as it does in QUERY mode."/>
                 <TextBlock Style="{StaticResource SubHeader}" Text="Filter the visible results by reference text (ABSOLUTE PATH)"/>
-                <TextBlock Style="{StaticResource BodyText}" Text="The ABSOLUTE PATH input state narrows the current results list by matching text in each displayed verse reference. It is not a general-purpose command for jumping to any arbitrary Bible reference."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="ABSOLUTE PATH is a text filter inside CHOICE mode. Press i to edit the existing reference filter, or c to clear it and start a new one. It narrows the current results list by matching text in each displayed verse reference; it does not search Bible text again and is not a general-purpose command for jumping to an arbitrary Bible reference. The key/action table below applies only while ABSOLUTE PATH editing is active."/>
                 <Grid Margin="0,0,0,24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="180"/>
@@ -1332,54 +1409,40 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Border Grid.Row="0" Grid.Column="0" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableHeader}" Text="Key"/>
+                    <Border Grid.Row="0" Grid.Column="0" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableHeader}" VerticalAlignment="Center" Text="Key"/>
                     </Border>
-                    <Border Grid.Row="0" Grid.Column="1" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableHeader}" Text="Action"/>
+                    <Border Grid.Row="0" Grid.Column="1" BorderBrush="#555555" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableHeader}" VerticalAlignment="Center" Text="Action"/>
                     </Border>
-                    <Border Grid.Row="1" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="i"/>
+                    <Border Grid.Row="1" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="i"/>
                     </Border>
-                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Begin editing the existing reference-filter text."/>
+                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="Begin editing the existing reference-filter text."/>
                     </Border>
-                    <Border Grid.Row="2" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="c"/>
+                    <Border Grid.Row="2" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="c"/>
                     </Border>
-                    <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Clear the reference-filter text and begin entering a new one."/>
+                    <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="Clear the reference-filter text and begin entering a new one."/>
                     </Border>
-                    <Border Grid.Row="3" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Backspace"/>
+                    <Border Grid.Row="3" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="Backspace"/>
                     </Border>
-                    <Border Grid.Row="3" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Remove the last character while editing."/>
+                    <Border Grid.Row="3" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="Remove the last character while editing."/>
                     </Border>
-                    <Border Grid.Row="4" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Esc"/>
+                    <Border Grid.Row="4" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="Esc"/>
                     </Border>
-                    <Border Grid.Row="4" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Return to normal result navigation."/>
+                    <Border Grid.Row="4" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="12,9,12,9" MinHeight="42">
+                        <TextBlock Style="{StaticResource TableCell}" VerticalAlignment="Center" FontSize="15" TextWrapping="Wrap" Text="Return to normal result navigation."/>
                     </Border>
 
-                    <Border Grid.Row="5" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Ctrl+F"/>
-                    </Border>
-                    <Border Grid.Row="5" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Scroll down by twice the distance used by Ctrl+D."/>
-                    </Border>
-                    <Border Grid.Row="6" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Ctrl+B"/>
-                    </Border>
-                    <Border Grid.Row="6" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,8,8,8">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Scroll up by twice the distance used by Ctrl+U."/>
-                    </Border>
                 </Grid>
-                <TextBlock Style="{StaticResource BodyText}" Text="Ordinary supported characters are added while editing. The filter matches the displayed verse reference rather than searching Bible text again. For example, entering 3:16 shows references containing that text; it does not introduce John 3:16 as a general navigation command. Ctrl+F scrolls down and Ctrl+B scrolls up by double the corresponding Ctrl+D/Ctrl+U step; the effective number of displayed lines depends on the underlying scrolling step. Use Tab to switch search modes or / to exit Search mode."/>
+                <TextBlock Style="{StaticResource BodyText}" Text="Type ordinary reference text to narrow the list. For example, 3:16 shows references containing the text “3:16”; it does not perform a direct jump to John 3:16. Backspace removes the last typed character. Escape ends ABSOLUTE PATH editing and returns to normal CHOICE navigation. Result-navigation shortcuts are available in normal CHOICE mode; press Esc before using them. Use Tab to switch search modes or / to exit Search mode."/>
                 <TextBlock Style="{StaticResource SectionHeader}" Text="12. KEYBOARD CONTROLS AND CONTEXT"/>
                 <TextBlock Style="{StaticResource BodyText}" Text="The same key can mean different things in different modes. Always check the active mode before interpreting a key."/>
                 <Grid Margin="0,0,0,24">
@@ -1389,6 +1452,7 @@
                         <ColumnDefinition Width="1.5*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -1481,7 +1545,7 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="No general navigation command."/>
                     </Border>
                     <Border Grid.Row="8" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="Moves down/up 20 results in normal CHOICE. In ABSOLUTE PATH, Ctrl+F/Ctrl+B scroll down/up by twice the corresponding step."/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="In normal CHOICE, Ctrl+D/U move down/up 20 results and Ctrl+F/B move down/up 40. During ABSOLUTE PATH editing, press Esc before using result-navigation shortcuts."/>
                     </Border>
                     <Border Grid.Row="9" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="/"/>
@@ -1509,6 +1573,15 @@
                     </Border>
                     <Border Grid.Row="11" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="Input for query/reference-filter handling, not mark navigation."/>
+                    </Border>
+                    <Border Grid.Row="12" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="Ctrl+Q"/>
+                    </Border>
+                    <Border Grid.Row="12" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="Exit the application."/>
+                    </Border>
+                    <Border Grid.Row="12" Grid.Column="2" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="14" TextWrapping="Wrap" Text="Application-level shortcut; not a Bible navigation command."/>
                     </Border>
                 </Grid>
                 <TextBlock Style="{StaticResource SectionHeader}" Text="13. COMMAND FEEDBACK"/>
@@ -1580,7 +1653,7 @@
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Vim-style shortcuts"/>
                     </Border>
                     <Border Grid.Row="2" Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
-                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Do not expect gg or G to jump to the beginning/end."/>
+                        <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="In CHOICE mode, gg selects the first result and G selects the last; other Vim-style motions are not implied."/>
                     </Border>
                     <Border Grid.Row="3" Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="8,7,8,7">
                         <TextBlock Style="{StaticResource TableCell}" FontSize="15" TextWrapping="Wrap" Text="Combined Bible references"/>
@@ -2025,7 +2098,7 @@
                 </Grid>
                 <TextBlock Style="{StaticResource BodyText}" Text="The predefined dictionary does not define verse shortcuts for every Bible book. Only the listed codes are available; do not infer aliases for books not represented above."/>
                 <Border Height="1" Background="#444444" Margin="0,22,0,18"/>
-                <TextBlock Text="Press x or f to close this window" Foreground="#888888" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,25"/>
+                <TextBlock Text="Press x or f to close this Help window. Ctrl+Q exits the application." Foreground="#888888" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,25"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

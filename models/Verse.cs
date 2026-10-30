@@ -3,6 +3,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace navigationshurely.models
 {
@@ -39,14 +40,8 @@ namespace navigationshurely.models
 
         public string Text { get; set; } = "";
 
-        public string Name 
-        { 
-            get
-            {
-                return ToString();
-            }
-        }
 
+        [JsonIgnore]
         public Brush BorderColor =>
             Selected ? Brushes.Red : Brushes.Transparent;
 

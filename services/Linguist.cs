@@ -29,6 +29,8 @@ namespace navigationshurely.services
         private bool normalChoosingMode = true;
 
         public event Action<bool>? SearchUiVisibilityChanged;
+        public event Action<bool>? ShowMarks;
+        public event Action? HideTheEnterBox;
 
         public Linguist()
         {
@@ -207,7 +209,6 @@ namespace navigationshurely.services
         // Aliases derived from Ang Dating Biblia (Tagalog).
         // Each key is the first letter of the verse's first four space-separated words.
         // Values encode BookId * 1,000,000 + Chapter * 1,000 + Verse.
-        // Rows marked NEW are the 250 added aliases.
         private static readonly Dictionary<string, int> SCommands = new()
         {
             ["npan"] = 1001001, // Genesis 1:1
@@ -1463,6 +1464,7 @@ namespace navigationshurely.services
             if (parseState == ParseState.TeleportingToMark)
             {
                 command = new Command { Mode = State.S, Quantity = -1 * (int)k, Direction = Direct.Absolute };
+                ShowMarks?.Invoke(false);
                 validity = EntireCommandStatus.Valid;
                 return validity;
             }
@@ -1489,6 +1491,7 @@ namespace navigationshurely.services
             }
             else if (k == '\'')
             {
+                ShowMarks?.Invoke(true);
                 parseState = ParseState.TeleportingToMark;
                 validity = EntireCommandStatus.Incomplete;
                 return validity;
@@ -1605,6 +1608,8 @@ namespace navigationshurely.services
                             return CopyTheTitle();
                         case 'v':
                             return CopyTheVerse();
+                        case 'y':
+                            return CopyAll();
                         default:
                             return NotValid();
                     }
@@ -1697,6 +1702,7 @@ namespace navigationshurely.services
             //toggles on and off SEARCH mode
             if (k == '/')
             {
+                HideTheEnterBox?.Invoke();
                 SearchUiVisibilityChanged?.Invoke(false); // Close search UI
                 state = previousStateBeforeSearch;
                 commandString = "";
@@ -2273,6 +2279,13 @@ namespace navigationshurely.services
         private EntireCommandStatus CopyTheTitle()
         {
             command = new Command { Mode = state, Quantity = 600, Direction = Direct.Absolute };
+            validity = EntireCommandStatus.Valid;
+            return validity;
+        }
+
+        private EntireCommandStatus CopyAll()
+        {
+            command = new Command { Mode = state, Quantity = 900, Direction = Direct.Absolute };
             validity = EntireCommandStatus.Valid;
             return validity;
         }

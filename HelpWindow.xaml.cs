@@ -40,6 +40,11 @@ namespace navigationshurely
                         e.Handled = true;
                         return;
 
+                    case Key.Q:
+                        Application.Current.Shutdown();
+                        e.Handled = true;
+                        return;
+
                     default:
                         return;
                 }
@@ -69,11 +74,13 @@ namespace navigationshurely
 
             switch (e.Key)
             {
+                case Key.Down:
                 case Key.J:
                     ScrollDown();
                     e.Handled = true;
                     break;
 
+                case Key.Up:
                 case Key.K:
                     ScrollUp();
                     e.Handled = true;
@@ -108,7 +115,9 @@ namespace navigationshurely
                     break;
 
                 case Key.F:
+                case Key.Escape:
                 case Key.X:
+                case Key.Q:
                     Close();
                     e.Handled = true;
                     break;

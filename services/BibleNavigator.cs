@@ -23,33 +23,33 @@ public class BibleNavigator
     private bool isGlobalUiVisible;
     private string searchQuery;
     private string searchPortion;
+    private EntireCommandStatus validityCheck;
+    private Dictionary<int, Verse> markedVerses;
 
     public event Action? HelpRequested;
     public event Action? CopyVerseText;
     public event Action? CopyVerseName;
-    public event Action? DisplaySearchResults;
+    public event Action? CopyBothTitleAndText;
+    public event Action<State>? DisplaySearchResults;
     public event Action? FiltersHaveChanged;
     public event Action<bool>? SearchUiVisibilityChanged;
     public event Action<bool>? PressEnterVisibilityChange;
     public event Action? UserScrolledSomewhere;
     public event Action<Direct>? ChangeBackgroundPlease;
 
-    private EntireCommandStatus validityCheck;
     public Verse CurrentVerse { get; private set; }
 
-    private Dictionary<int, Verse> markedVerses;
-    public BibleNavigator(BibleDatabase database)
+    public BibleNavigator(BibleDatabase database, Dictionary<int, Verse> markedVerses, int defaultBook, int defaultChapter, int defaultVerse)
     {
         _database = database;
-
-        markedVerses = new Dictionary<int, Verse>();
-        CurrentVerse = _database.GetVerse(1, 1, 1)
+        CurrentVerse = _database.GetVerse(defaultBook, defaultChapter, defaultVerse)
             ?? throw new InvalidOperationException(
-                "Could not load Genesis 1:1.");
+                "Could not load last verse");
         History = [CurrentVerse];
         validityCheck = EntireCommandStatus.Valid;
         isGlobalUiVisible = true;
         searchQuery = string.Empty;
+        this.markedVerses = markedVerses;
     }
 
     //==========================================================================================================================
@@ -222,6 +222,9 @@ public class BibleNavigator
                     case 800:
                         ChangeBackgroundPlease?.Invoke(Direct.Down);
                         break;
+                    case 900:
+                        CopyBothTitleAndText?.Invoke();
+                        break;
                     default:
                         if (command.Quantity > 127)
                             AliasPosition(command.Quantity);
@@ -251,7 +254,7 @@ public class BibleNavigator
                 {
                     searchPortion = command.SearchText;
                     UpdateFilteredVerses();
-                    DisplaySearchResults?.Invoke();
+                    DisplaySearchResults?.Invoke(command.Mode);
                     UserScrolledSomewhere?.Invoke();
                 }
                 break;
@@ -292,10 +295,16 @@ public class BibleNavigator
         return bookPart * 1000000 + chapterPart * 1000 + versePart;
     }
 
+    public Dictionary<int, Verse> BookMarks()
+    {
+        return markedVerses;
+    }
+
 
     // =========================================================
     // SEARCH FUNCTIONALITY
     // =========================================================
+
     private void AbsoluteSearch(string? search)
     {
         PressEnterVisibilityChange?.Invoke(false);
@@ -308,7 +317,7 @@ public class BibleNavigator
         {
             filteringListedVerses[choiceVerseIndex].Selected = true;
         }
-        DisplaySearchResults?.Invoke();
+        DisplaySearchResults?.Invoke(State.Choice);
         UserScrolledSomewhere?.Invoke();
     }
 

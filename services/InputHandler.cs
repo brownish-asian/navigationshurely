@@ -10,16 +10,22 @@ namespace navigationshurely.Services
     {
         public event Action<bool>? SearchUiVisibilityChanged;
         public static event Action? ExitApplication;
+        public event Action<bool>? ShowMarks;
+        public event Action? HideTheEnterBox;
+
         private Linguist linguist = new();
 
         public InputHandler()
         {
-            linguist.SearchUiVisibilityChanged += visible =>
-            {
-                SearchUiVisibilityChanged?.Invoke(visible);
-            };
+            linguist.SearchUiVisibilityChanged += visible => { SearchUiVisibilityChanged?.Invoke(visible); };
+            linguist.ShowMarks += visible => { ShowMarks?.Invoke(visible); };
+            linguist.HideTheEnterBox += PassingOnTheMessage;
         }
 
+        private void PassingOnTheMessage()
+        {
+            HideTheEnterBox?.Invoke();
+        }
         public string AliasForThisVerse(int encodedBookNumber)
         {
             return linguist.AliasForThisVerse(encodedBookNumber);
@@ -48,7 +54,7 @@ namespace navigationshurely.Services
 
         public string GetStateText()
         {
-            return this.linguist.ModeString();
+            return linguist.ModeString();
         }
 
         private static bool TryConvertKey(Key key, out char character)

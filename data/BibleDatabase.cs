@@ -20,14 +20,23 @@ public class BibleDatabase
         _connection.Open();
     }
 
+    public static BibleDatabase Master(int translationNumber)
+    {
+        if (databaseInstance == null)
+        {
+            databaseInstance = new BibleDatabase("data/bible.db");
+            databaseInstance.translationNumber = translationNumber;
+        }
+        return databaseInstance;
+    }
     public static BibleDatabase Master()
     {
         if (databaseInstance == null)
         {
             databaseInstance = new BibleDatabase("data/bible.db");
+            databaseInstance.translationNumber = 1;
         }
         return databaseInstance;
-
     }
     public string TranslationName()
     {
@@ -44,10 +53,12 @@ public class BibleDatabase
             return translationNumber.ToString();
         }
     }
+
     public int TranslationNumber()
     {
-        return (int) translationNumber;
+        return translationNumber;
     }
+
     public void ChangeTranslation()
     {
         if (translationNumber == 1)

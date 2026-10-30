@@ -23,21 +23,31 @@ namespace navigationshurely
         private Verse verse;
         private readonly BibleNavigator navigator;
         private readonly BibleDatabase _database;
-        private const double MaxVerseFontSize = 60;
-        private const double MinVerseFontSize = 3;
+        private const double MaxVerseFontSize = 70;
+        private const double MinVerseFontSize = 5;
         private readonly InputHandler inputHandler = new InputHandler();
         private List<string> testStrings = ["apple", "banana", "cherry"];
         private string backgroundImagePath = "images/dbw59.jpg";
+        private AppSettings plumber;
 
         private bool globalUiVisible = true;
         private bool searchUiRequestedVisible = false;
+        private bool marksVisible = false;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            _database = BibleDatabase.Master();
-            navigator = new BibleNavigator(_database);
+            SettingsGuy settingsGuy = new SettingsGuy();
+            plumber = settingsGuy.loAd();
+
+            backgroundImagePath = plumber.LastImageFilePath;
+
+            BackgroundBrush.ImageSource = new BitmapImage(
+                new Uri(backgroundImagePath, UriKind.Relative));
+
+            _database = BibleDatabase.Master(plumber.LastTranslationNumber);
+            navigator = new BibleNavigator(_database, plumber.LastMarks, plumber.LastBookNumber, plumber.LastChapterNumber, plumber.LastVerseNumber);
 
             navigator.HelpRequested += OpenHelpWindow;
             navigator.CopyVerseText += CopyVerse;
@@ -45,9 +55,12 @@ namespace navigationshurely
             navigator.DisplaySearchResults += DisplaySearch;
             navigator.FiltersHaveChanged += DisplayFilters;
             navigator.ChangeBackgroundPlease += ChangeBackgroundImage;
+            navigator.CopyBothTitleAndText += CopyAll;
 
             InputHandler.ExitApplication += CloseApplication;
             inputHandler.SearchUiVisibilityChanged += SetSearchUiRequestedVisibility;
+            inputHandler.ShowMarks += ShowMarks;
+            inputHandler.HideTheEnterBox += HideEnterBox;
             navigator.SearchUiVisibilityChanged += SetGlobalUiVisibility;
             navigator.PressEnterVisibilityChange += PressEnterSearchVisibility;
 
@@ -73,11 +86,17 @@ namespace navigationshurely
             hintBoxTwo.Visibility = visibility;
             frequencyBox.Visibility = visibility;
             aliasBox.Visibility = visibility;
+            refreshSearchBox.Visibility = visibility;
 
             // Search-related controls obey BOTH states.
             ApplySearchUiVisibility();
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            PrepareToClose();
+            base.OnClosed(e);
+        }
 
         // Called when Linguist's search visibility request changes.
         private void SetSearchUiRequestedVisibility(bool visible)
@@ -85,6 +104,18 @@ namespace navigationshurely
             searchUiRequestedVisible = visible;
             ApplySearchUiVisibility();
         }
+
+        private void ShowMarks(bool visible)
+        {
+            marksVisible = visible;
+            ApplyMarksVisibility();
+        }
+
+        private void HideEnterBox()
+        {
+            refreshSearchBox.Visibility = Visibility.Hidden;
+        }
+
 
         // Called when Navigator changes global UI visibility.
         private void SetGlobalUiVisibility(bool visible)
@@ -112,6 +143,7 @@ namespace navigationshurely
             rightList.Visibility = visibility;
             bottomList.Visibility = visibility;
             frequencyBox.Visibility = visibility;
+            //refreshSearchBox.Visibility = visibility;
 
             if (searchUiRequestedVisible)
             {
@@ -125,10 +157,32 @@ namespace navigationshurely
             }
         }
 
+        private void ApplyMarksVisibility()
+        {
+            Visibility visibility = globalUiVisible && marksVisible? Visibility.Visible : Visibility.Collapsed;
+
+            rightList.Visibility = visibility;
+            DisplaySearch(State.V);
+        }
+
         private void CloseApplication()
         {
+            PrepareToClose();
             Application.Current.Shutdown();
         }
+
+        private void PrepareToClose()
+        {
+            plumber.LastTranslationNumber = _database.TranslationNumber();
+            plumber.LastMarks = navigator.BookMarks();
+            plumber.LastBookNumber = verse.BookId;
+            plumber.LastChapterNumber = verse.Chapter;
+            plumber.LastVerseNumber = verse.VerseNumber;
+            plumber.LastImageFilePath = backgroundImagePath;
+            SettingsGuy settingsGuy = new SettingsGuy();
+            settingsGuy.saVe(plumber);
+        }
+
         private void PressEnterSearchVisibility(bool visible)
         {
             Visibility visibility = globalUiVisible && visible? Visibility.Visible : Visibility.Collapsed;
@@ -177,13 +231,13 @@ namespace navigationshurely
         {
             string[] backgrounds =
             {
-        "images/dbw59.jpg",
-        "images/dbw02.jpg",
-        "images/dbw04.jpg",
-        "images/dbw08.jpg",
-        "images/dbw16.jpg",
-        "images/dbw17.jpg"
-    };
+                "images/dbw59.jpg",
+                "images/dbw02.jpg",
+                "images/dbw04.jpg",
+                "images/dbw08.jpg",
+                "images/dbw16.jpg",
+                "images/dbw17.jpg"
+            };
 
             int index = Array.IndexOf(backgrounds, backgroundImagePath);
 
@@ -259,26 +313,50 @@ namespace navigationshurely
             Clipboard.SetText(titleBox.Text);
         }
 
-        private void DisplaySearch()
+        private void CopyAll()
         {
-            List<Verse> SearchResults = navigator.LocatedVerses();
-            rightList.ItemsSource = SearchResults;
-            int frequency = SearchResults.Count;
-            string frequencyText;
-            if (frequency > 0)
+            string verseTitle = titleBox.Text;
+            string verseContent = verseBox.Text;
+            Clipboard.SetText(verseTitle + "\n" + verseContent);
+        }
+
+        private void DisplaySearch(State state)
+        {
+            if (state == State.Choice)
             {
-                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + frequency.ToString() + " results found";
-                frequencyBox.Text = frequencyText;
-            }
-            else if (frequency == 1)
-            {
-                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + frequency.ToString() + " result found";
-                frequencyBox.Text = frequencyText;
+                List<Verse> SearchResults = navigator.LocatedVerses();
+                rightList.ItemTemplate = (DataTemplate)FindResource("SearchVerseTemplate");
+                rightList.ItemsSource = SearchResults;
+                int frequency = SearchResults.Count;
+                string frequencyText;
+                if (frequency > 0)
+                {
+                    frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + frequency.ToString() + " results found";
+                    frequencyBox.Text = frequencyText;
+                }
+                else if (frequency == 1)
+                {
+                    frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + frequency.ToString() + " result found";
+                    frequencyBox.Text = frequencyText;
+                }
+                else
+                {
+                    frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + "No result found";
+                    frequencyBox.Text = frequencyText;
+                }
             }
             else
             {
-                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + "No result found";
-                frequencyBox.Text = frequencyText;
+                rightList.ItemTemplate = (DataTemplate)FindResource("MarkedVerseTemplate");
+
+                rightList.ItemsSource = navigator.BookMarks()
+                    .OrderBy(pair => pair.Key)
+                    .Select(pair => new MarkedVerseItem
+                    {
+                        KeyCode = pair.Key,
+                        Verse = pair.Value
+                    })
+                    .ToList();
             }
         }
 
