@@ -11,7 +11,7 @@ namespace navigationshurely.Services
         public event Action<bool>? SearchUiVisibilityChanged;
         public static event Action? ExitApplication;
         public event Action<bool>? ShowMarks;
-        public event Action? HideTheEnterBox;
+        public event Action<bool>? HideTheEnterBoxOrNah;
 
         private Linguist linguist = new();
 
@@ -22,9 +22,9 @@ namespace navigationshurely.Services
             linguist.HideTheEnterBox += PassingOnTheMessage;
         }
 
-        private void PassingOnTheMessage()
+        private void PassingOnTheMessage(bool visible)
         {
-            HideTheEnterBox?.Invoke();
+            HideTheEnterBoxOrNah?.Invoke(visible);
         }
         public string AliasForThisVerse(int encodedBookNumber)
         {
@@ -40,7 +40,7 @@ namespace navigationshurely.Services
             return EntireCommandStatus.Invalid;
         }
 
-        public Color CommandColor() { return linguist.CommandColor(); }
+        public Color CommandColor(bool classic) { return linguist.CommandColor(classic); }
 
         public string CommandInfo()
         {
@@ -50,6 +50,11 @@ namespace navigationshurely.Services
         public Command? GetCommand()
         {
             return linguist.TakeCommand();
+        }
+
+        public State getState()
+        {
+            return linguist.getState();
         }
 
         public string GetStateText()

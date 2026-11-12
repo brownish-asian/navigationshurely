@@ -28,7 +28,9 @@ namespace navigationshurely.models
             }
         }
 
-        private BibleDatabase database;
+        public string TagalogText { get; set; } = "";
+        public string EnglishText { get; set; } = "";
+
 
         private int translationId;
 
@@ -38,7 +40,18 @@ namespace navigationshurely.models
 
         public int VerseNumber { get; set; }
 
-        public string Text { get; set; } = "";
+        public string Text
+        {
+            get
+            {
+                BibleDatabase database = BibleDatabase.Master();
+
+                if (database.TranslationNumber() == 1)
+                    return TagalogText;
+
+                return EnglishText;
+            }
+        }
 
 
         [JsonIgnore]
@@ -61,7 +74,7 @@ namespace navigationshurely.models
 
         public string Title()
         {
-            database = BibleDatabase.Master();
+            BibleDatabase database = BibleDatabase.Master();
             translationId = database.TranslationNumber();
             if (translationId == 1)
             {

@@ -30,6 +30,7 @@ public class BibleNavigator
     public event Action? CopyVerseText;
     public event Action? CopyVerseName;
     public event Action? CopyBothTitleAndText;
+    public event Action? InterfaceChange;
     public event Action<State>? DisplaySearchResults;
     public event Action? FiltersHaveChanged;
     public event Action<bool>? SearchUiVisibilityChanged;
@@ -225,6 +226,9 @@ public class BibleNavigator
                     case 900:
                         CopyBothTitleAndText?.Invoke();
                         break;
+                    case 1000:
+                        InterfaceChange?.Invoke();
+                        break;
                     default:
                         if (command.Quantity > 127)
                             AliasPosition(command.Quantity);
@@ -298,6 +302,12 @@ public class BibleNavigator
     public Dictionary<int, Verse> BookMarks()
     {
         return markedVerses;
+    }
+
+    public void SetCurrentVerse(Verse verse)
+    {
+        CurrentVerse = verse;
+        Visit(verse);
     }
 
 

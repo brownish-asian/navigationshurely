@@ -114,127 +114,137 @@
 
         <!-- Header: aligned with the main text column rather than positioned by a fixed left margin. -->
         <StackPanel Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,60,0,0">
-            <TextBlock x:Name="titleBox" Text="GENESIS 1:1" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="50" HorizontalAlignment="Left"/>
-            <TextBlock x:Name="translationBox" Text="ANG DATING BIBLIA" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="30" HorizontalAlignment="Left"/>
+            <TextBlock x:Name="titleBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="50" HorizontalAlignment="Left"/>
+            <TextBlock x:Name="translationBox" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="30" HorizontalAlignment="Left"/>
         </StackPanel>
         <!-- Verse area: its width comes from the centre Grid column. -->
         <Grid x:Name="verseContainer" Grid.Row="1" Grid.Column="1" Margin="0,20,0,80">
-            <TextBlock x:Name="verseBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="59"/>
+            <TextBlock x:Name="verseBox" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center"/>
         </Grid>
-        <!-- Right-side dynamic list -->
-        <ListView x:Name="rightList"
-          Grid.Row="1"
-          Grid.Column="2"
-          MinWidth="72"
-          MaxHeight="{Binding ActualHeight, ElementName=verseContainer}"
-          HorizontalAlignment="Stretch"
-          VerticalAlignment="Center"
-          Margin="0,20,5,100"
-          Background="Transparent"
-          BorderThickness="0"
-          Padding="0"
-          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+        <!-- Right-side dynamic list border -->
+        <Border x:Name="rightListBorder"
+        Grid.Row="1"
+        Grid.Column="2"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Center"
+        Margin="0,20,5,100"
+        MinWidth="72"
+        MaxHeight="{Binding ActualHeight, ElementName=verseContainer}"
+        BorderBrush="#00FFFFFF"
+        CornerRadius="4"
+        Padding="2"
+        BorderThickness="2">
 
-            <ListView.Resources>
-                <!-- Remove the default ListView selection and hover visuals -->
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
+            <!-- Right-side dynamic list -->
+            <ListView x:Name="rightList"
+              MouseLeftButtonUp="rightList_MouseLeftButtonUp"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Background="Transparent"
+              BorderThickness="0"
+              Padding="0"
+              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+
+                <ListView.Resources>
+                    <!-- Remove the default ListView selection and hover visuals -->
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
                          Color="#252B38"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}"
+                    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}"
                          Color="#252B38"/>
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
                          Color="#FFFFFF"/>
-            </ListView.Resources>
+                </ListView.Resources>
 
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
 
-                    <Setter Property="HorizontalContentAlignment"
+                        <Setter Property="HorizontalContentAlignment"
                     Value="Stretch"/>
 
-                    <Setter Property="VerticalContentAlignment"
+                        <Setter Property="VerticalContentAlignment"
                     Value="Center"/>
 
-                    <Setter Property="Padding"
+                        <Setter Property="Padding"
                     Value="0"/>
 
-                    <Setter Property="Margin"
+                        <Setter Property="Margin"
                     Value="0,3"/>
 
-                    <Setter Property="Background"
+                        <Setter Property="Background"
                     Value="Transparent"/>
 
-                    <Setter Property="BorderThickness"
+                        <Setter Property="BorderThickness"
                     Value="0"/>
 
-                    <Setter Property="FocusVisualStyle"
+                        <Setter Property="FocusVisualStyle"
                     Value="{x:Null}"/>
 
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ListViewItem">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
 
-                                <Border x:Name="ItemBorder"
-                                Background="#B30B0F16"
-                                BorderBrush="{Binding BorderColor}"
-                                BorderThickness="2"
-                                CornerRadius="5"
-                                Padding="4,9"
-                                SnapsToDevicePixels="True">
+                                    <Border x:Name="ItemBorder"
+                                        Background="#B30B0F16"
+                                        BorderBrush="{Binding BorderColor}"
+                                        BorderThickness="2"
+                                        CornerRadius="5"
+                                        Padding="4,9"
+                                        SnapsToDevicePixels="True">
 
-                                    <ContentPresenter
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                RecognizesAccessKey="False"/>
+                                        <ContentPresenter
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            RecognizesAccessKey="False"/>
 
-                                </Border>
+                                    </Border>
 
-                                <ControlTemplate.Triggers>
+                                    <ControlTemplate.Triggers>
 
-                                    <!-- Gentle highlight when the pointer enters -->
-                                    <Trigger Property="IsMouseOver"
+                                        <!-- Gentle highlight when the pointer enters -->
+                                        <Trigger Property="IsMouseOver"
                                      Value="True">
-                                        <Setter TargetName="ItemBorder"
+                                            <Setter TargetName="ItemBorder"
                                         Property="Background"
                                         Value="#E61A2230"/>
-                                        <Setter TargetName="ItemBorder"
+                                            <Setter TargetName="ItemBorder"
                                         Property="BorderThickness"
                                         Value="2"/>
-                                    </Trigger>
+                                        </Trigger>
 
-                                    <!-- Keep keyboard selection visually restrained -->
-                                    <Trigger Property="IsSelected"
+                                        <!-- Keep keyboard selection visually restrained -->
+                                        <Trigger Property="IsSelected"
                                      Value="True">
-                                        <Setter TargetName="ItemBorder"
+                                            <Setter TargetName="ItemBorder"
                                         Property="Background"
                                         Value="#E6212938"/>
-                                    </Trigger>
+                                        </Trigger>
 
-                                    <MultiTrigger>
-                                        <MultiTrigger.Conditions>
-                                            <Condition Property="IsSelected"
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected"
                                                Value="True"/>
-                                            <Condition Property="IsMouseOver"
+                                                <Condition Property="IsMouseOver"
                                                Value="True"/>
-                                        </MultiTrigger.Conditions>
+                                            </MultiTrigger.Conditions>
 
-                                        <Setter TargetName="ItemBorder"
+                                            <Setter TargetName="ItemBorder"
                                         Property="Background"
                                         Value="#F02A3547"/>
-                                    </MultiTrigger>
+                                        </MultiTrigger>
 
-                                </ControlTemplate.Triggers>
+                                    </ControlTemplate.Triggers>
 
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
 
-                </Style>
-            </ListView.ItemContainerStyle>
+                    </Style>
+                </ListView.ItemContainerStyle>
 
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding}"
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"
                        Foreground="#F1F5F9"
                        FontFamily="Consolas"
                        FontWeight="SemiBold"
@@ -243,101 +253,98 @@
                        TextAlignment="Center"
                        LineHeight="19"
                        SnapsToDevicePixels="True"/>
-                </DataTemplate>
-            </ListView.ItemTemplate>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
 
-        </ListView>
+            </ListView>
+
+        </Border>
 
 
         <!-- Bottom dynamic list -->
-        <ListView x:Name="bottomList"
-          Grid.Row="1"
-          Grid.Column="0"
-          Grid.ColumnSpan="2"
-          MinHeight="40"
-          MaxHeight="50"
-          HorizontalAlignment="Stretch"
-          VerticalAlignment="Bottom"
-          Margin="30,0,0,80"
-          Background="Transparent"
-          BorderThickness="0"
-          Padding="0"
-          ScrollViewer.HorizontalScrollBarVisibility="Auto"
-          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+        <Border x:Name="bottomListBorder"
+        Grid.Row="1"
+        Grid.Column="0"
+        Grid.ColumnSpan="2"
+        HorizontalAlignment="Left"
+        VerticalAlignment="Bottom"
+        Margin="30,0,0,80"
+        BorderBrush="#00FFFFFF"
+        CornerRadius="4"
+        Padding="2"
+        BorderThickness="2">
 
-            <ListView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal"/>
-                </ItemsPanelTemplate>
-            </ListView.ItemsPanel>
+            <ListView x:Name="bottomList"
+              MinHeight="40"
+              MaxHeight="50"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Bottom"
+              Background="Transparent"
+              BorderThickness="0"
+              Padding="0"
+              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+              ScrollViewer.VerticalScrollBarVisibility="Disabled">
 
-            <ListView.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
 
-                    <Setter Property="HorizontalContentAlignment"
-                    Value="Center"/>
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
 
-                    <Setter Property="VerticalContentAlignment"
-                    Value="Center"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="3,0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
 
-                    <Setter Property="Padding"
-                    Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
 
-                    <Setter Property="Margin"
-                    Value="3,0"/>
+                                    <Border x:Name="ItemBorder"
+                                    Background="#B30B0F16"
+                                    BorderBrush="{Binding BorderColor}"
+                                    BorderThickness="2"
+                                    CornerRadius="5"
+                                    Padding="9,5"
+                                    SnapsToDevicePixels="True">
 
-                    <Setter Property="Background"
-                    Value="Transparent"/>
+                                        <ContentPresenter
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    RecognizesAccessKey="False"/>
 
-                    <Setter Property="BorderThickness"
-                    Value="0"/>
+                                    </Border>
 
-                    <Setter Property="FocusVisualStyle"
-                    Value="{x:Null}"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
 
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ListViewItem">
+                    </Style>
+                </ListView.ItemContainerStyle>
 
-                                <Border x:Name="ItemBorder"
-                                Background="#B30B0F16"
-                                BorderBrush="{Binding BorderColor}"
-                                BorderThickness="2"
-                                CornerRadius="5"
-                                Padding="9,5"
-                                SnapsToDevicePixels="True">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                           Foreground="#F1F5F9"
+                           FontFamily="Consolas"
+                           FontWeight="SemiBold"
+                           FontSize="14"
+                           TextWrapping="NoWrap"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           SnapsToDevicePixels="True"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
 
-                                    <ContentPresenter
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                RecognizesAccessKey="False"/>
+            </ListView>
 
-                                </Border>
-
- 
-
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-
-                </Style>
-            </ListView.ItemContainerStyle>
-
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding}"
-                       Foreground="#F1F5F9"
-                       FontFamily="Consolas"
-                       FontWeight="SemiBold"
-                       FontSize="14"
-                       TextWrapping="NoWrap"
-                       TextAlignment="Center"
-                       VerticalAlignment="Center"
-                       SnapsToDevicePixels="True"/>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-
-        </ListView>
+        </Border>
         <!-- Mode indicator -->
         <TextBlock x:Name="frequencyBox" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,40,70" Foreground="#FF9FCBDF" FontFamily="Consolas" FontWeight="Bold" FontSize="17"/>
         <!-- Alias indicator -->
@@ -369,18 +376,235 @@
                HorizontalAlignment="Center"
                Margin="0,0,20,50"
                Visibility="Hidden"/>
-        <TextBlock x:Name="bufferBox"
-           Grid.Row="1"
-           Grid.Column="1"
-           Grid.ColumnSpan="2"
-           Text=""
-           HorizontalAlignment="Right"
-           VerticalAlignment="Bottom"
-           Margin="0,0,40,0"
-           Foreground="#182126"
-           FontFamily="Consolas"
-           FontWeight="Bold"
-           FontSize="20"/>
+        <!-- Buffer box border -->
+        <Border x:Name="bufferBoxBorder"
+        Grid.Row="1"
+        Grid.Column="1"
+        Grid.ColumnSpan="2"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Bottom"
+        Margin="0,0,40,0"
+        BorderBrush="#20FFFFFF"
+        CornerRadius="4"
+        Padding="2"
+        BorderThickness="2"
+        Visibility="{Binding Visibility, ElementName=bufferBox}">
+
+            <TextBlock x:Name="bufferBox"
+               Text=""
+               Visibility="Collapsed"
+               HorizontalAlignment="Left"
+               VerticalAlignment="Center"
+               Foreground="#182126"
+               FontFamily="Consolas"
+               FontWeight="Bold"
+               FontSize="20"/>
+
+        </Border>
+        <StackPanel
+            Grid.Row="1"
+            Grid.Column="1"
+            Grid.ColumnSpan="2"
+            Orientation="Horizontal"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Margin="0,0,40,0">
+
+            <!-- LEFT LABEL -->
+            <Border
+                BorderBrush="#00FFFFFF"
+                            x:Name="searchBorder"
+                            CornerRadius="4"
+                            Padding="2"
+                            BorderThickness="2"
+                             VerticalAlignment="Bottom"
+               HorizontalAlignment="Left"
+               Margin="0,0,15,0"  
+                >
+                <TextBlock x:Name="guidedLabel"
+               Text=""
+               Foreground="#000000"
+               FontFamily="Consolas"
+               FontWeight="Bold"
+               FontSize="20"/>
+            </Border>
+
+            <!-- GUIDED HUD -->
+            <StackPanel x:Name="guidedHudPanel"
+            Grid.Row="1"
+            Grid.Column="1"
+            Grid.ColumnSpan="2"
+            Orientation="Vertical"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Margin="0,0,40,0">
+
+                <!-- MODE INDICATORS -->
+                <Grid Width="298" Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="190"/>
+                        <ColumnDefinition Width="45"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="45"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- BOOK MODE -->
+                    <Border x:Name="bookModeIndicator"
+                Grid.Column="0"
+                        Visibility="Collapsed"
+                Background="#55071320"
+                BorderBrush="#68788C"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="5,3"
+                Margin="2">
+
+                        <TextBlock Text="BOOK"
+                               x:Name="bsBox"
+                       Foreground="#000000"
+                       FontFamily="Consolas"
+                                   
+                       FontWeight="Bold"
+                       FontSize="18"
+                       TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- CHAPTER MODE -->
+                    <Border x:Name="chapterModeIndicator"
+                Grid.Column="1"
+                Background="#55071320"
+                        Visibility="Collapsed"
+                BorderBrush="#68788C"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="2"
+                Margin="2">
+
+                        <TextBlock Text="CH"
+                               x:Name="csBox"
+                       Foreground="#000000"
+                       FontFamily="Consolas"
+                       FontWeight="Bold"
+                       FontSize="18"
+                       TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- VERSE MODE -->
+                    <Border x:Name="verseModeIndicator"
+                Grid.Column="3"
+                Background="#55071320"
+                        Visibility="Collapsed"
+                BorderBrush="#68788C"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="2"
+                Margin="2">
+
+                        <TextBlock Text="VS"
+                               x:Name="vsBox"
+                       Foreground="#000000"
+                       FontFamily="Consolas"
+                       FontWeight="Bold"
+                       FontSize="18"
+                       TextAlignment="Center"/>
+                    </Border>
+
+                </Grid>
+
+                <!-- CURRENT REFERENCE + COMMAND BUFFER -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="190"/>
+                        <ColumnDefinition Width="45"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="45"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- BOOK -->
+                    <Border Grid.Column="0"
+            BorderBrush="#20FFFFFF"
+                            x:Name="bBorder"
+                            CornerRadius="4"
+                            Margin="2"
+                            Padding="2"
+                            BorderThickness="2"
+            Visibility="{Binding Visibility, ElementName=guidedBookBox}">
+
+                        <TextBlock x:Name="guidedBookBox"
+                   Foreground="White"
+                   FontFamily="Consolas"
+                   Visibility="Collapsed"
+                   FontWeight="Bold"
+                   FontSize="20"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- CHAPTER -->
+                    <Border Grid.Column="1"
+            BorderBrush="#20FFFFFF"
+                            x:Name="cBorder"
+                            CornerRadius="4"
+                            Margin="2"
+                            Padding="2"
+                            BorderThickness="2"
+            Visibility="{Binding Visibility, ElementName=guidedChapterBox}">
+
+                        <TextBlock x:Name="guidedChapterBox"
+                   Foreground="White"
+                   FontFamily="Consolas"
+                   Visibility="Collapsed"
+                   FontWeight="Bold"
+                   FontSize="20"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- SEPARATOR -->
+                    <Border Grid.Column="2"
+            BorderBrush="#20FFFFFF"
+                            x:Name="sBorder"
+                            CornerRadius="4"
+                            Margin="2"
+                            Padding="2"
+                            BorderThickness="2"
+            Visibility="{Binding Visibility, ElementName=semiColonBox}">
+
+                        <TextBlock x:Name="semiColonBox"
+                   Text=":"
+                   Foreground="White"
+                   FontFamily="Consolas"
+                   Visibility="Collapsed"
+                   FontWeight="Bold"
+                   FontSize="20"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- VERSE -->
+                    <Border Grid.Column="3"
+            BorderBrush="#20FFFFFF"
+                            x:Name="vBorder"
+                                                        CornerRadius="4"
+                            Margin="2"
+                            Padding="2"
+                            BorderThickness="2"
+            Visibility="{Binding Visibility, ElementName=guidedVerseBox}">
+
+                        <TextBlock x:Name="guidedVerseBox"
+                   Foreground="White"
+                   FontFamily="Consolas"
+                   Visibility="Collapsed"
+                   FontWeight="Bold"
+                   FontSize="20"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"/>
+                    </Border>
+
+                </Grid>
+            </StackPanel>
+        </StackPanel>
         <!-- Hints -->
         <TextBlock x:Name="hintBoxOne" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="[space];f for help" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,50" Style="{StaticResource HintStyle}"/>
         <TextBlock x:Name="hintBoxTwo" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="[space];e to toggle UI" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,20" Style="{StaticResource HintStyle}"/>
