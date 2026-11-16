@@ -1,4 +1,6 @@
-﻿using navigationshurely.models;
+﻿
+
+using navigationshurely.models;
 using BibleApp.Data;
 using navigationshurely.services;
 using System;
@@ -25,6 +27,7 @@ public class BibleNavigator
     private string searchPortion;
     private EntireCommandStatus validityCheck;
     private Dictionary<int, Verse> markedVerses;
+    private readonly AliasCatalogue _aliasCatalog;
 
     public event Action? HelpRequested;
     public event Action? CopyVerseText;
@@ -34,19 +37,30 @@ public class BibleNavigator
     public event Action<State>? DisplaySearchResults;
     public event Action? FiltersHaveChanged;
     public event Action<bool>? SearchUiVisibilityChanged;
-    public event Action<bool>? PressEnterVisibilityChange;
     public event Action? UserScrolledSomewhere;
     public event Action<Direct>? ChangeBackgroundPlease;
 
     public Verse CurrentVerse { get; private set; }
 
-    public BibleNavigator(BibleDatabase database, Dictionary<int, Verse> markedVerses, int defaultBook, int defaultChapter, int defaultVerse)
+    public BibleNavigator(
+        BibleDatabase database,
+        Dictionary<int, Verse> markedVerses,
+        int defaultBook,
+        int defaultChapter,
+        int defaultVerse,
+        AliasCatalogue aliasCatalog)
     {
         _database = database;
-        CurrentVerse = _database.GetVerse(defaultBook, defaultChapter, defaultVerse)
-            ?? throw new InvalidOperationException(
-                "Could not load last verse");
+        _aliasCatalog = aliasCatalog;
+
+        CurrentVerse = _database.GetVerse(
+            defaultBook,
+            defaultChapter,
+            defaultVerse)
+            ?? throw new InvalidOperationException("Could not load last verse");
+
         History = [CurrentVerse];
+
         validityCheck = EntireCommandStatus.Valid;
         isGlobalUiVisible = true;
         searchQuery = string.Empty;
@@ -172,10 +186,6 @@ public class BibleNavigator
         {
             AbsoluteSearch(search);
         }
-        else
-        {
-            PressEnterVisibilityChange?.Invoke(true);
-        }
     }
 
     private void ProcessSemicolonCommand(Command command)
@@ -200,8 +210,8 @@ public class BibleNavigator
                         break;
 
                     case 300:
-                        SearchUiVisibilityChanged?.Invoke(isGlobalUiVisible);
                         isGlobalUiVisible = !isGlobalUiVisible;
+                        SearchUiVisibilityChanged?.Invoke(isGlobalUiVisible);
                         break;
 
                     case 400:
@@ -310,6 +320,16 @@ public class BibleNavigator
         Visit(verse);
     }
 
+    public bool SetCurrentVerseByAlias(string alias)
+    {
+        // Resolve the alias into its encoded verse reference.
+        if (!_aliasCatalog.TryResolve(alias, out int reference))
+            return false;
+
+        // Navigate to the actual verse.
+        return AliasPosition(reference);
+    }
+
 
     // =========================================================
     // SEARCH FUNCTIONALITY
@@ -317,7 +337,6 @@ public class BibleNavigator
 
     private void AbsoluteSearch(string? search)
     {
-        PressEnterVisibilityChange?.Invoke(false);
         locatedVerses = _database.Search(userRequest);
         filteringListedVerses = locatedVerses;
         searchPortion = "";
@@ -333,6 +352,14 @@ public class BibleNavigator
 
     private void ChoiceMade()
     {
+        if (filteringListedVerses.Count == 0)
+            return;
+
+        if (choiceVerseIndex < 0 ||
+            choiceVerseIndex >= filteringListedVerses.Count)
+        {
+            return;
+        }
         Verse verse = filteringListedVerses[choiceVerseIndex];
         GoTo(verse.BookId, verse.Chapter, verse.VerseNumber);
     }
@@ -708,6 +735,40 @@ public class BibleNavigator
         return filters;
     }
 
+    public List<AliasSuggestion> GetAliasSuggestions(string prefix)
+    {
+        return _aliasCatalog.FindMatches(prefix)
+            .Select(pair =>
+            {
+                int book = pair.Value / 1_000_000;
+                int chapter = (pair.Value / 1_000) % 1_000;
+                int verseNumber = pair.Value % 1_000;
+
+                string bookTitle = new Verse
+                {
+                    BookId = book
+                }.Title();
+
+                return new AliasSuggestion
+                {
+                    Alias = pair.Key,
+
+                    VerseTitle = $"{bookTitle} {chapter}:{verseNumber}"
+                };
+            })
+            .ToList();
+    }
+
+    public string AliasForCurrentVerse()
+    {
+        string? alias = _aliasCatalog.FindAlias(VerseEncodedNumber());
+
+        if (alias == null)
+            return "S-Mode command: No alias found";
+
+        return "S-Mode command: " + alias;
+    }
+
 
     // =========================================================
     // VERSE NAVIGATION
@@ -1014,7 +1075,7 @@ public class BibleNavigator
 
     private void ForwardInTime()
     {
-        if (indexVisited >= History.Count - 1) 
+        if (indexVisited >= History.Count - 1)
         {
             return;
         }
@@ -1066,14 +1127,22 @@ public class BibleNavigator
         Visit(CurrentVerse);
     }
 
-    private void AliasPosition(int reference)
+    private bool AliasPosition(int reference)
     {
         int book = reference / 1_000_000;
         int chapter = (reference / 1_000) % 1_000;
         int verse = reference % 1_000;
 
-        CurrentVerse = _database.GetVerse(book, chapter, verse)!;
-        Visit(CurrentVerse);
+        // Retrieve the actual Verse object from the active database.
+        Verse? destination = _database.GetVerse(book, chapter, verse);
+
+        if (destination == null)
+            return false;
+
+        // Update the current verse and record the navigation in history.
+        SetCurrentVerse(destination);
+
+        return true;
     }
 
     private static int WrapIndex(int index, int count)
@@ -1122,3 +1191,4 @@ public class BibleNavigator
         CurrentVerse = _database.GetVerse(CurrentVerse.BookId, CurrentVerse.Chapter, CurrentVerse.VerseNumber)!;
     }
 }
+

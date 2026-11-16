@@ -1,4 +1,6 @@
-﻿using navigationshurely.services;
+﻿
+
+using navigationshurely.services;
 using System.Collections.Generic;
 using System.Windows.Media;
 using System.Windows.Input;
@@ -9,60 +11,73 @@ namespace navigationshurely.Services
     public class InputHandler
     {
         public event Action<bool>? SearchUiVisibilityChanged;
-        public static event Action? ExitApplication;
+        public event Action? ExitApplication;
         public event Action<bool>? ShowMarks;
-        public event Action<bool>? HideTheEnterBoxOrNah;
+        public event Action<bool>? PressEnterVisibilityChanged;
 
-        private Linguist linguist = new();
+        private readonly Linguist _linguist;
 
-        public InputHandler()
+        public InputHandler(AliasCatalogue aliasCatalog)
         {
-            linguist.SearchUiVisibilityChanged += visible => { SearchUiVisibilityChanged?.Invoke(visible); };
-            linguist.ShowMarks += visible => { ShowMarks?.Invoke(visible); };
-            linguist.HideTheEnterBox += PassingOnTheMessage;
+            _linguist = new Linguist(aliasCatalog);
+
+            _linguist.SearchUiVisibilityChanged +=
+                visible => SearchUiVisibilityChanged?.Invoke(visible);
+
+            _linguist.ShowMarks +=
+                visible => ShowMarks?.Invoke(visible);
+
+            _linguist.PressEnterVisibilityChanged +=
+                visible => PressEnterVisibilityChanged?.Invoke(visible);
         }
 
-        private void PassingOnTheMessage(bool visible)
+        public string? AliasSuggestionPrefix()
         {
-            HideTheEnterBoxOrNah?.Invoke(visible);
+            return _linguist.AliasSuggestionPrefix();
         }
-        public string AliasForThisVerse(int encodedBookNumber)
+
+        public void AliasSuggestionSelected()
         {
-            return linguist.AliasForThisVerse(encodedBookNumber);
+            _linguist.AliasSuggestionSelected();
+        }
+
+        public void SelectNavigationMode(State target)
+        {
+            _linguist.SelectNavigationMode(target);
         }
 
         public EntireCommandStatus ProcessKey(Key key)
         {
             if (TryConvertKey(key, out char character))
             {
-                return linguist.Feed(character);
+                return _linguist.Feed(character);
             }
             return EntireCommandStatus.Invalid;
         }
 
-        public Color CommandColor(bool classic) { return linguist.CommandColor(classic); }
+        public Color CommandColor(bool classic) { return _linguist.CommandColor(classic); }
 
         public string CommandInfo()
         {
-            return linguist.CurrentCommandInfo();
+            return _linguist.CurrentCommandInfo();
         }
 
         public Command? GetCommand()
         {
-            return linguist.TakeCommand();
+            return _linguist.TakeCommand();
         }
 
         public State getState()
         {
-            return linguist.getState();
+            return _linguist.getState();
         }
 
         public string GetStateText()
         {
-            return linguist.ModeString();
+            return _linguist.ModeString();
         }
 
-        private static bool TryConvertKey(Key key, out char character)
+        private bool TryConvertKey(Key key, out char character)
         {
             // Check special Ctrl combinations FIRST.
             if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
@@ -87,8 +102,8 @@ namespace navigationshurely.Services
 
                     case Key.Q:
                         character = '\u0005';
-                        ExitApplication.Invoke();
-                        return true;
+                        ExitApplication?.Invoke();
+                        return false;
 
                     case Key.B:
                         character = '\u0002'; // Ctrl+b
@@ -179,5 +194,7 @@ namespace navigationshurely.Services
                     return false;
             }
         }
+
     }
+
 }

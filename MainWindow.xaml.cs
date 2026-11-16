@@ -1,44 +1,94 @@
-﻿using BibleApp.Data;
-using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
+using BibleApp.Data;
 using navigationshurely.models;
 using navigationshurely.Services;
 using navigationshurely.services;
-using System.Diagnostics;
-using System;
 
 namespace navigationshurely
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
+    ///
+    /// This class coordinates the WPF controls with InputHandler and
+    /// BibleNavigator. Command parsing and Bible navigation remain in their
+    /// existing classes; this window is responsible for presenting their state.
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Verse verse;
-        private readonly BibleNavigator navigator;
-        private readonly BibleDatabase _database;
+        // =========================================================
+        // CONSTANTS AND FIXED RESOURCES
+        // =========================================================
+
         private const double MaxVerseFontSize = 70;
         private const double MinVerseFontSize = 5;
-        private readonly InputHandler inputHandler = new InputHandler();
-        private List<string> testStrings = ["apple", "banana", "cherry"];
-        private string backgroundImagePath = "images/dbw59.jpg";
-        private AppSettings plumber;
-        private Layout layout = Layout.Classic;
+
+        private static readonly string[] Backgrounds =
+        {
+            "images/dbw59.jpg",
+            "images/dbw02.jpg",
+            "images/dbw04.jpg",
+            "images/dbw08.jpg",
+            "images/dbw16.jpg",
+            "images/dbw17.jpg"
+        };
+
         private readonly Brush normalBackgroundColor;
         private readonly Brush normalBorderBrush;
         private readonly Brush transparentBrush;
+        private readonly Brush activeBorderBrush;
+
+        // Reuse brushes for command colours instead of allocating one on
+        // every key press. WPF brushes are frozen before being cached.
+        private readonly Dictionary<Color, Brush> commandBrushes = new();
+
+        // =========================================================
+        // APP STATE
+        // =========================================================
+
+        private readonly InputHandler inputHandler;
+        private readonly BibleDatabase _database;
+        private readonly BibleNavigator navigator;
+        private readonly AliasCatalogue _aliasCatalog = new();
+
+        private AppSettings plumber = null!;
+        private string backgroundImagePath = "images/dbw59.jpg";
+        private Layout layout = Layout.Classic;
 
         private bool globalUiVisible = true;
-        private bool searchUiRequestedVisible = false;
-        private bool marksVisible = false;
-        private bool enterVisible = false;
+        private bool searchUiRequestedVisible;
+        private bool marksVisible;
+        private bool enterVisible;
+        private bool settingsSaved;
+
+        // Avoid refreshing the main verse controls when a command has not
+        // changed the current verse or translation.
+        private int lastDisplayedBook = -1;
+        private int lastDisplayedChapter = -1;
+        private int lastDisplayedVerse = -1;
+        private int lastDisplayedTranslation = -1;
+
+        // The Guided layout needs a short, unique book code. Build those codes
+        // once per translation instead of rebuilding all 66 names per key.
+        private readonly Dictionary<int, string[]> guidedBookCodes = new();
+
+        private int lastGuidedBook = -1;
+        private int lastGuidedChapter = -1;
+        private int lastGuidedVerse = -1;
+        private int lastGuidedTranslation = -1;
+
+        private double lastMeasuredVerseWidth = -1;
+        private double lastMeasuredVerseHeight = -1;
+
+        // =========================================================
+        // CONSTRUCTION AND LIFECYCLE
+        // =========================================================
 
         public MainWindow()
         {
@@ -48,69 +98,177 @@ namespace navigationshurely
             plumber = settingsGuy.loAd();
 
             backgroundImagePath = plumber.LastImageFilePath;
-
             BackgroundBrush.ImageSource = new BitmapImage(
                 new Uri(backgroundImagePath, UriKind.Relative));
-            var converter = new BrushConverter();
-            normalBackgroundColor = (Brush)converter.ConvertFrom("#55071320");
-            normalBorderBrush = (Brush)converter.ConvertFrom("#68788C");
-            transparentBrush = (Brush)converter.ConvertFrom("#00FFFFFF");
+
+            normalBackgroundColor = CreateFrozenBrush(
+                Color.FromArgb(0x55, 0x07, 0x13, 0x20));
+            normalBorderBrush = CreateFrozenBrush(
+                Color.FromRgb(0x68, 0x78, 0x8C));
+            transparentBrush = CreateFrozenBrush(
+                Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF));
+            activeBorderBrush = CreateFrozenBrush(
+                Color.FromRgb(0xE5, 0xB9, 0x4F));
+
+            inputHandler = new InputHandler(_aliasCatalog);
             _database = BibleDatabase.Master(plumber.LastTranslationNumber);
-            navigator = new BibleNavigator(_database, plumber.LastMarks, plumber.LastBookNumber, plumber.LastChapterNumber, plumber.LastVerseNumber);
+            navigator = new BibleNavigator(
+                _database,
+                plumber.LastMarks,
+                plumber.LastBookNumber,
+                plumber.LastChapterNumber,
+                plumber.LastVerseNumber, _aliasCatalog);
 
-            navigator.HelpRequested += OpenHelpWindow;
-            navigator.CopyVerseText += CopyVerse;
-            navigator.CopyVerseName += CopyTitle;
-            navigator.DisplaySearchResults += DisplaySearch;
-            navigator.FiltersHaveChanged += DisplayFilters;
-            navigator.ChangeBackgroundPlease += ChangeBackgroundImage;
-            navigator.CopyBothTitleAndText += CopyAll;
-            navigator.InterfaceChange += SwitchLayouts;
-
-            InputHandler.ExitApplication += CloseApplication;
-            inputHandler.SearchUiVisibilityChanged += SetSearchUiRequestedVisibility;
-            inputHandler.ShowMarks += ShowMarks;
-            inputHandler.HideTheEnterBoxOrNah += ToggleEnterBox;
-            navigator.SearchUiVisibilityChanged += SetGlobalUiVisibility;
-            navigator.PressEnterVisibilityChange += PressEnterSearchVisibility;
-
-            navigator.UserScrolledSomewhere += ScrollRightList;
+            ConnectNavigatorEvents();
+            ConnectInputEvents();
 
             layout = plumber.LastPreferredLayout;
 
             PreviewKeyDown += MainWindow_PreviewKeyDown;
-            Loaded += (sender, e) =>
-            {
-                UpdateVerseDisplay();
-                if (layout is Layout.Classic)
-                {
-                    showClassic(Visibility.Visible);
-                }
-                else if (layout is Layout.Guided)
-                {
-                    showGuided(Visibility.Visible);
-                }
-                InterfaceUpdate(false);
-            };
+            Loaded += MainWindow_Loaded;
         }
+
+        private void ConnectNavigatorEvents()
+        {
+            navigator.HelpRequested += OpenHelpWindow;
+            navigator.CopyVerseText += CopyVerse;
+            navigator.CopyVerseName += CopyTitle;
+            navigator.CopyBothTitleAndText += CopyAll;
+            navigator.DisplaySearchResults += DisplaySearch;
+            navigator.FiltersHaveChanged += DisplayFilters;
+            navigator.ChangeBackgroundPlease += ChangeBackgroundImage;
+            navigator.InterfaceChange += SwitchLayouts;
+            navigator.SearchUiVisibilityChanged += SetGlobalUiVisibility;
+            navigator.UserScrolledSomewhere += ScrollRightList;
+        }
+
+        private void ConnectInputEvents()
+        {
+            // ExitApplication is an instance event in the supplied InputHandler.
+            inputHandler.ExitApplication += CloseApplication;
+            inputHandler.SearchUiVisibilityChanged += SetSearchUiRequestedVisibility;
+            inputHandler.ShowMarks += ShowMarks;
+            inputHandler.PressEnterVisibilityChanged += SetPressEnterVisibility;
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateVerseDisplay(force: true);
+
+            if (layout == Layout.Classic)
+                ShowClassicLayout(Visibility.Visible);
+            else
+                ShowGuidedLayout(Visibility.Visible);
+
+            InterfaceUpdate(commandWasProcessedByNavigator: false);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            PrepareToClose();
+            base.OnClosed(e);
+        }
+
+        private void CloseApplication()
+        {
+            Application.Current?.Shutdown();
+        }
+
+        private void PrepareToClose()
+        {
+            // Ctrl+Q calls this before Shutdown, and OnClosed calls it again.
+            // Save once, using the navigator's current verse rather than a UI
+            // field that might not have been populated yet.
+            if (settingsSaved)
+                return;
+
+            Verse currentVerse = navigator.CurrentVerse;
+
+            plumber.LastTranslationNumber = _database.TranslationNumber();
+            plumber.LastMarks = navigator.BookMarks();
+            plumber.LastBookNumber = currentVerse.BookId;
+            plumber.LastChapterNumber = currentVerse.Chapter;
+            plumber.LastVerseNumber = currentVerse.VerseNumber;
+            plumber.LastImageFilePath = backgroundImagePath;
+            plumber.LastPreferredLayout = layout;
+
+            SettingsGuy settingsGuy = new SettingsGuy();
+            settingsGuy.saVe(plumber);
+            settingsSaved = true;
+        }
+
+        // =========================================================
+        // EVENT-DRIVEN INPUT
+        // =========================================================
+
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            EntireCommandStatus status = inputHandler.ProcessKey(e.Key);
+
+            if (status == EntireCommandStatus.Valid)
+            {
+                Command? command = inputHandler.GetCommand();
+
+                if (command != null)
+                {
+                    // Linguist validates the command's grammar first. The
+                    // navigator then decides whether it is valid in context.
+                    navigator.ProcessCommand(command);
+                    InterfaceUpdate(commandWasProcessedByNavigator: true);
+                    UpdateVerseDisplay();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            InterfaceUpdate(commandWasProcessedByNavigator: false);
+            e.Handled = true;
+        }
+
+        private void GuidedModeBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (layout != Layout.Guided || sender is not FrameworkElement element)
+                return;
+
+            State? target = element.Tag?.ToString() switch
+            {
+                "B" => State.B,
+                "C" => State.C,
+                "V" => State.V,
+                _ => null
+            };
+
+            if (target == null)
+                return;
+
+            inputHandler.SelectNavigationMode(target.Value);
+
+            // Refresh only the interface. No BibleNavigator command is needed.
+            InterfaceUpdate(commandWasProcessedByNavigator: false);
+
+            e.Handled = true;
+        }
+
+        // =========================================================
+        // LAYOUT VISIBILITY
+        // =========================================================
 
         private void SwitchLayouts()
         {
-            if (layout is Layout.Classic)
+            if (layout == Layout.Classic)
             {
                 layout = Layout.Guided;
-                showGuided(Visibility.Visible);
+                ShowGuidedLayout(Visibility.Visible);
+                UpdateGuidedVersePosition();
             }
-
-            else if (layout is Layout.Guided)
+            else
             {
                 layout = Layout.Classic;
-                showClassic(Visibility.Visible);
+                ShowClassicLayout(Visibility.Visible);
             }
-
         }
 
-        private void showGuided(Visibility visibility)
+        private void ShowGuidedLayout(Visibility visibility)
         {
             modeBox.Visibility = Visibility.Collapsed;
             bufferBox.Visibility = Visibility.Collapsed;
@@ -128,7 +286,7 @@ namespace navigationshurely
             searchBorder.Visibility = visibility;
         }
 
-        private void showClassic(Visibility visibility)
+        private void ShowClassicLayout(Visibility visibility)
         {
             modeBox.Visibility = visibility;
             bufferBox.Visibility = visibility;
@@ -146,34 +304,35 @@ namespace navigationshurely
             searchBorder.Visibility = Visibility.Collapsed;
         }
 
-        private void ToggleUI()
+        private void SetGlobalUiVisibility(bool visible)
         {
-            globalUiVisible = !globalUiVisible;
+            // BibleNavigator raises this event after toggling its own flag,
+            // so the event argument is already the new visibility.
+            SetGlobalUiVisibilityCore(visible);
+        }
 
-            Visibility visibility = globalUiVisible
+        private void SetGlobalUiVisibilityCore(bool visible)
+        {
+            globalUiVisible = visible;
+
+            Visibility ordinaryControlsVisibility = visible
                 ? Visibility.Visible
                 : Visibility.Hidden;
 
-            aliasBox.Visibility = visibility;
-             
-            if (layout is Layout.Classic)
-            {
-                showClassic(visibility);
-            }
-            else if (layout is Layout.Guided)
-            {
-                showGuided(visibility);
-            }
+            aliasBox.Visibility = ordinaryControlsVisibility;
+
+            if (layout == Layout.Classic)
+                ShowClassicLayout(ordinaryControlsVisibility);
+            else
+                ShowGuidedLayout(ordinaryControlsVisibility);
+
             ApplySearchUiVisibility();
         }
 
-        protected override void OnClosed(EventArgs e)
-        {
-            PrepareToClose();
-            base.OnClosed(e);
-        }
+        // =========================================================
+        // SEARCH AND MARK LIST VISIBILITY
+        // =========================================================
 
-        // Called when Linguist's search visibility request changes.
         private void SetSearchUiRequestedVisibility(bool visible)
         {
             searchUiRequestedVisible = visible;
@@ -186,41 +345,31 @@ namespace navigationshurely
             ApplyMarksVisibility();
         }
 
-        private void ToggleEnterBox(bool visible)
+        private void SetPressEnterVisibility(bool visible)
         {
+            // This is the single source of truth for the Enter prompt.
+            // Always update the backing state before refreshing the UI.
             enterVisible = visible;
             ApplySearchUiVisibility();
         }
 
-
-        // Called when Navigator changes global UI visibility.
-        private void SetGlobalUiVisibility(bool visible)
-        {
-            globalUiVisible = visible;
-
-            // Replace this with your existing global UI
-            // visibility logic for your ordinary controls.
-            ToggleUI();
-        }
-
         private void ApplySearchUiVisibility()
         {
+            Visibility visibility = globalUiVisible && searchUiRequestedVisible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
-            Visibility visibility =
-                globalUiVisible && searchUiRequestedVisible
+            bottomList.Visibility = visibility;
+            frequencyBox.Visibility = visibility;
+
+            refreshSearchBox.Visibility =
+                globalUiVisible && searchUiRequestedVisible && enterVisible
                     ? Visibility.Visible
                     : Visibility.Collapsed;
 
-            // Replace these example names with your actual
-            // search UI controls.
-            rightList.Visibility = visibility;
-            bottomList.Visibility = visibility;
-            frequencyBox.Visibility = visibility;
-            refreshSearchBox.Visibility = globalUiVisible && enterVisible ? Visibility.Visible : Visibility.Collapsed;
-
             if (searchUiRequestedVisible)
             {
-                hintBoxTwo.Text = "";
+                hintBoxTwo.Text = string.Empty;
                 hintBoxOne.Text = "Press '/' again to exit Search Mode";
             }
             else
@@ -228,16 +377,16 @@ namespace navigationshurely
                 hintBoxOne.Text = "[space];f for help";
                 hintBoxTwo.Text = "[space];e to toggle UI";
             }
+            ApplyRightListVisibility();
         }
 
         private void ApplyMarksVisibility()
         {
-            Visibility visibility = globalUiVisible && marksVisible? Visibility.Visible : Visibility.Collapsed;
 
-            rightList.Visibility = visibility; 
             if (marksVisible)
             {
-                rightList.ItemTemplate = (DataTemplate)FindResource("MarkedVerseTemplate");
+                rightList.ItemTemplate =
+                    (DataTemplate)FindResource("MarkedVerseTemplate");
 
                 rightList.ItemsSource = navigator.BookMarks()
                     .OrderBy(pair => pair.Key)
@@ -254,323 +403,399 @@ namespace navigationshurely
                 rightList.ItemsSource = null;
             }
 
+            ApplyRightListVisibility();
         }
 
-        private void CloseApplication()
+        private void UpdateAliasSuggestions()
         {
-            PrepareToClose();
-            Application.Current.Shutdown();
-        }
+            // Don't interfere with other uses of the right-hand list.
+            // Also avoid generating suggestions when the entire UI is hidden.
+            if (!globalUiVisible || marksVisible || searchUiRequestedVisible)
+                return;
 
-        private void PrepareToClose()
-        {
-            plumber.LastTranslationNumber = _database.TranslationNumber();
-            plumber.LastMarks = navigator.BookMarks();
-            plumber.LastBookNumber = verse.BookId;
-            plumber.LastChapterNumber = verse.Chapter;
-            plumber.LastVerseNumber = verse.VerseNumber;
-            plumber.LastImageFilePath = backgroundImagePath;
-            plumber.LastPreferredLayout = layout;
-            SettingsGuy settingsGuy = new SettingsGuy();
-            settingsGuy.saVe(plumber);
-        }
+            string? prefix = inputHandler.AliasSuggestionPrefix();
 
-        private void PressEnterSearchVisibility(bool visible)
-        {
-            Visibility visibility = globalUiVisible && visible? Visibility.Visible : Visibility.Collapsed;
-            refreshSearchBox.Visibility = visibility;
-        }
-
-        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            EntireCommandStatus grammaticalStatus = inputHandler.ProcessKey(e.Key);
-
-            if (grammaticalStatus == EntireCommandStatus.Valid)
+            // No valid alias is currently being typed.
+            if (prefix == null)
             {
-                Command? command = inputHandler.GetCommand();
-                if (command != null)
-                {
-                    //if linguist says the command is valid, navigator has the final say about the validity of the command
-                    navigator.ProcessCommand(command);
-                    InterfaceUpdate(true);
-                    UpdateVerseDisplay();
-                    e.Handled = true;
-                    return;
-                }
+                rightList.SelectedItem = null;
+                rightList.ItemsSource = null;
+                return;
             }
-            InterfaceUpdate(false);
-            e.Handled = true;
+
+            // Display the alias suggestion template.
+            rightList.ItemTemplate =
+                (DataTemplate)FindResource("AliasSuggestionTemplate");
+
+            // Retrieve only suggestions matching the user's prefix.
+            rightList.ItemsSource =
+                navigator.GetAliasSuggestions(prefix);
         }
 
-        private void InterfaceUpdate(bool itWasExternal)
+        private void ApplyRightListVisibility()
         {
-            if (layout is Layout.Classic)
+            bool shouldBeVisible =
+                globalUiVisible &&
+                (
+                    searchUiRequestedVisible ||
+                    marksVisible ||
+                    inputHandler.AliasSuggestionPrefix() != null
+                );
+
+            rightList.Visibility = shouldBeVisible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+
+        // =========================================================
+        // COMMAND-STATE PRESENTATION
+        // =========================================================
+
+        private void InterfaceUpdate(bool commandWasProcessedByNavigator)
+        {
+            if (layout == Layout.Classic)
+                UpdateClassicInterface(commandWasProcessedByNavigator);
+            else
+                UpdateGuidedInterface(commandWasProcessedByNavigator);
+
+            UpdateAliasSuggestions();
+
+            ApplyRightListVisibility();
+        }
+
+        private void UpdateClassicInterface(bool commandWasProcessedByNavigator)
+        {
+            modeBox.Text = inputHandler.GetStateText();
+            bufferBox.Text = inputHandler.CommandInfo();
+
+            State currentState = inputHandler.getState();
+            UpdateClassicBorders(currentState);
+
+            bufferBox.Background = GetCommandBrush(
+                commandWasProcessedByNavigator,
+                classic: true);
+        }
+
+        private void UpdateClassicBorders(State currentState)
+        {
+            rightListBorder.BorderBrush = Brushes.Transparent;
+            bottomListBorder.BorderBrush = Brushes.Transparent;
+            bufferBoxBorder.BorderBrush = transparentBrush;
+
+            switch (currentState)
             {
-                modeBox.Text = inputHandler.GetStateText();
-                bufferBox.Text = inputHandler.CommandInfo();
+                case State.Filter:
+                    bottomListBorder.BorderBrush = activeBorderBrush;
+                    break;
 
+                case State.Choice:
+                    rightListBorder.BorderBrush = activeBorderBrush;
+                    break;
 
-                var hexColorS = (Color)ColorConverter.ConvertFromString("#E5B94F");
-
-                State currentState = inputHandler.getState();
-                switch (currentState)
-                {
-                    case State.Filter:
-                    bottomListBorder.BorderBrush = new SolidColorBrush(hexColorS);
-
-                        rightListBorder.BorderBrush = Brushes.Transparent;
-                        bufferBoxBorder.BorderBrush = Brushes.Transparent;
-                        break;
-
-                    case State.Choice:
-                    rightListBorder.BorderBrush = new SolidColorBrush(hexColorS);
-
-                    bottomListBorder.BorderBrush = Brushes.Transparent;
-                        bufferBoxBorder.BorderBrush = Brushes.Transparent;
-                        break;
-
-                    case State.Query:
-                        bufferBoxBorder.BorderBrush = new SolidColorBrush(hexColorS);
-
-                    rightListBorder.BorderBrush = Brushes.Transparent;
-                        bottomListBorder.BorderBrush = Brushes.Transparent;
-                        break;
-
-                    default:
-                        bufferBoxBorder.BorderBrush = transparentBrush;
-                        rightListBorder.BorderBrush = Brushes.Transparent;
-                        bottomListBorder.BorderBrush = Brushes.Transparent;
-                        break;
-                }
-                if (itWasExternal)
-                {
-                    Color navigatorColor = navigator.CommandColor();
-                    bufferBox.Background = new SolidColorBrush(navigatorColor);
-                }
-                else
-                {
-                    //if linguist says the command is not valid, or it's an internal linguist command (state switch), linguist has the final say about the validity of the command
-                    Color linguistColor = inputHandler.CommandColor(true);
-                    bufferBox.Background = new SolidColorBrush(linguistColor);
-                }
-            }
-            else if (layout is Layout.Guided) 
-            {
-                verse = navigator.CurrentVerse;
-                var (bookString, chapterString, verseString) =  GetVerseParts(verse);
-                guidedBookBox.Text = bookString;
-                guidedChapterBox.Text = chapterString;
-                guidedVerseBox.Text = verseString;
-                State currentState = inputHandler.getState();
-                
-                switch (currentState)
-                {
-                    case State.B:
-                        bsBox.Text = inputHandler.CommandInfo();
-                        csBox.Text = "";
-                        vsBox.Text = "";
-                        guidedLabel.Text = "";
-                        if (itWasExternal)
-                        {
-                            Color navigatorColor = navigator.CommandColor();
-                            bookModeIndicator.Background = new SolidColorBrush(navigatorColor);
-
-                        }
-                        else
-                        {
-                            //if linguist says the command is not valid, or it's an internal linguist command (state switch), linguist has the final say about the validity of the command
-                            Color linguistColorB = inputHandler.CommandColor(false);
-                            bookModeIndicator.Background = new SolidColorBrush(linguistColorB);
-
-                        }
-                        var hexColor = (Color)ColorConverter.ConvertFromString("#E5B94F");
-                        bBorder.BorderBrush = new SolidColorBrush(hexColor);
-
-                        chapterModeIndicator.Background = normalBackgroundColor;
-                        cBorder.BorderBrush = normalBorderBrush;
-
-                        verseModeIndicator.Background = normalBackgroundColor;
-                        vBorder.BorderBrush = normalBorderBrush;
-
-                        guidedLabel.Visibility = Visibility.Collapsed;
-                        searchBorder.Visibility = Visibility.Collapsed;
-
-                        break;
-                    case State.C:
-                        bsBox.Text = "";
-                        csBox.Text = inputHandler.CommandInfo();
-                        vsBox.Text = "";
-                        guidedLabel.Text = "";
-
-                        if (itWasExternal)
-                        {
-                            Color navigatorColor = navigator.CommandColor();
-                            chapterModeIndicator.Background = new SolidColorBrush(navigatorColor);
-
-                        }
-                        else
-                        {
-                            Color linguistColorC = inputHandler.CommandColor(false);
-                            chapterModeIndicator.Background = new SolidColorBrush(linguistColorC);
-
-                        }
-
-                        var hexColorC = (Color)ColorConverter.ConvertFromString("#E5B94F");
-                        cBorder.BorderBrush = new SolidColorBrush(hexColorC);
-
-                        bookModeIndicator.Background = normalBackgroundColor;
-                        bBorder.BorderBrush = normalBorderBrush;
-
-                        verseModeIndicator.Background = normalBackgroundColor;
-                        vBorder.BorderBrush = normalBorderBrush;
-
-                        guidedLabel.Visibility = Visibility.Collapsed;
-                        searchBorder.Visibility = Visibility.Collapsed;
-
-                        break;
-                    case State.V:
-                        bsBox.Text = "";
-                        csBox.Text = "";
-                        guidedLabel.Text = "";
-                        vsBox.Text = inputHandler.CommandInfo();
-                        if (itWasExternal)
-                        {
-                            Color navigatorColor = navigator.CommandColor();
-                            verseModeIndicator.Background = new SolidColorBrush(navigatorColor);
-
-                        }
-                        else
-                        {
-                            //if linguist says the command is not valid, or it's an internal linguist command (state switch), linguist has the final say about the validity of the command
-                            Color linguistColorV = inputHandler.CommandColor(false);
-                            verseModeIndicator.Background = new SolidColorBrush(linguistColorV);
-
-                        }
-                        var hexColorV = (Color)ColorConverter.ConvertFromString("#E5B94F");
-                        vBorder.BorderBrush = new SolidColorBrush(hexColorV);
-
-                        bookModeIndicator.Background = normalBackgroundColor;
-                        bBorder.BorderBrush = normalBorderBrush;
-
-                        chapterModeIndicator.Background = normalBackgroundColor;
-                        cBorder.BorderBrush = normalBorderBrush;
-
-                        guidedLabel.Visibility = Visibility.Collapsed;
-                        searchBorder.Visibility = Visibility.Collapsed;
-
-
-                        break;
-
-                    case State.S:
-                    case State.Choice:
-                    case State.Query:
-                    case State.Filter:
-                        Visibility visibility = globalUiVisible ? Visibility.Visible : Visibility.Collapsed;
-                        guidedLabel.Visibility = visibility;
-                        searchBorder.Visibility = visibility;
-                        bsBox.Text = "";
-                        csBox.Text = "";
-                        vsBox.Text = "";
-
-                        bookModeIndicator.Background = normalBackgroundColor;
-                        bBorder.BorderBrush = normalBorderBrush;
-
-                        chapterModeIndicator.Background = normalBackgroundColor;
-                        cBorder.BorderBrush = normalBorderBrush;
-
-                        verseModeIndicator.Background = normalBackgroundColor;
-                        vBorder.BorderBrush = normalBorderBrush;
-
-                        guidedLabel.Text = inputHandler.CommandInfo();
-                        if (itWasExternal)
-                        {
-                            Color navigatorColor = navigator.CommandColor();
-                            guidedLabel.Background = new SolidColorBrush(navigatorColor);
-                        }
-                        else
-                        {
-                            //if linguist says the command is not valid, or it's an internal linguist command (state switch), linguist has the final say about the validity of the command
-                            Color linguistColorS = inputHandler.CommandColor(true);
-                            guidedLabel.Background = new SolidColorBrush(linguistColorS);
-                        }
-                            var hexColorS = (Color)ColorConverter.ConvertFromString("#E5B94F");
-                            if (currentState == State.Filter)
-                            {
-                                bottomListBorder.BorderBrush = new SolidColorBrush(hexColorS);
-
-                                rightListBorder.BorderBrush = Brushes.Transparent;
-                            searchBorder.BorderBrush = Brushes.Transparent;
-                        }
-                            else if (currentState == State.Choice) 
-                            {
-                                rightListBorder.BorderBrush = new SolidColorBrush(hexColorS);
-
-                                bottomListBorder.BorderBrush = Brushes.Transparent;
-                            searchBorder.BorderBrush = Brushes.Transparent;
-                        }
-                            else
-                            {
-                                searchBorder.BorderBrush = new SolidColorBrush(hexColorS);
-
-                                rightListBorder.BorderBrush = Brushes.Transparent;
-                            bottomListBorder.BorderBrush = Brushes.Transparent;
-                            }
-
-                        break;
-                }
+                case State.Query:
+                    bufferBoxBorder.BorderBrush = activeBorderBrush;
+                    break;
             }
         }
 
-        private void UpdateVerseDisplay()
+        private void UpdateGuidedInterface(bool commandWasProcessedByNavigator)
         {
-            verse = navigator.CurrentVerse;
-            titleBox.Text = verse.ToString();
-            verseBox.Text = verse.Text;
+            UpdateGuidedVersePosition();
+
+            State currentState = inputHandler.getState();
+            string commandInfo = inputHandler.CommandInfo();
+
+            switch (currentState)
+            {
+                case State.B:
+                    bsBox.Text = commandInfo;
+                    csBox.Text = string.Empty;
+                    vsBox.Text = string.Empty;
+                    guidedLabel.Text = string.Empty;
+
+                    SetGuidedModeAppearance(
+                        State.B,
+                        GetCommandBrush(commandWasProcessedByNavigator, classic: false));
+                    guidedLabel.Visibility = Visibility.Collapsed;
+                    searchBorder.Visibility = Visibility.Collapsed;
+                    break;
+
+                case State.C:
+                    bsBox.Text = string.Empty;
+                    csBox.Text = commandInfo;
+                    vsBox.Text = string.Empty;
+                    guidedLabel.Text = string.Empty;
+
+                    SetGuidedModeAppearance(
+                        State.C,
+                        GetCommandBrush(commandWasProcessedByNavigator, classic: false));
+                    guidedLabel.Visibility = Visibility.Collapsed;
+                    searchBorder.Visibility = Visibility.Collapsed;
+                    break;
+
+                case State.V:
+                    bsBox.Text = string.Empty;
+                    csBox.Text = string.Empty;
+                    vsBox.Text = commandInfo;
+                    guidedLabel.Text = string.Empty;
+
+                    SetGuidedModeAppearance(
+                        State.V,
+                        GetCommandBrush(commandWasProcessedByNavigator, classic: false));
+                    guidedLabel.Visibility = Visibility.Collapsed;
+                    searchBorder.Visibility = Visibility.Collapsed;
+                    break;
+
+                case State.S:
+                case State.Choice:
+                case State.Query:
+                case State.Filter:
+                    UpdateGuidedSearchInterface(
+                        currentState,
+                        commandInfo,
+                        commandWasProcessedByNavigator);
+                    break;
+            }
+        }
+
+        private void SetGuidedModeAppearance(State activeState, Brush activeCommandBrush)
+        {
+            // Reset search-related highlights.
+            rightListBorder.BorderBrush = Brushes.Transparent;
+            bottomListBorder.BorderBrush = Brushes.Transparent;
+            searchBorder.BorderBrush = Brushes.Transparent;
+
+            // Update mode indicator backgrounds.
+            bookModeIndicator.Background = activeState == State.B
+                ? activeCommandBrush
+                : normalBackgroundColor;
+
+            chapterModeIndicator.Background = activeState == State.C
+                ? activeCommandBrush
+                : normalBackgroundColor;
+
+            verseModeIndicator.Background = activeState == State.V
+                ? activeCommandBrush
+                : normalBackgroundColor;
+
+            // Update mode indicator borders.
+            bBorder.BorderBrush = activeState == State.B
+                ? activeBorderBrush
+                : normalBorderBrush;
+
+            cBorder.BorderBrush = activeState == State.C
+                ? activeBorderBrush
+                : normalBorderBrush;
+
+            vBorder.BorderBrush = activeState == State.V
+                ? activeBorderBrush
+                : normalBorderBrush;
+        }
+
+        private void UpdateGuidedSearchInterface(State currentState, string commandInfo, bool commandWasProcessedByNavigator)
+        {
+            Visibility visibility = globalUiVisible
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            guidedLabel.Visibility = visibility;
+            searchBorder.Visibility = visibility;
+
+            bsBox.Text = string.Empty;
+            csBox.Text = string.Empty;
+            vsBox.Text = string.Empty;
+
+            bookModeIndicator.Background = normalBackgroundColor;
+            chapterModeIndicator.Background = normalBackgroundColor;
+            verseModeIndicator.Background = normalBackgroundColor;
+
+            bBorder.BorderBrush = normalBorderBrush;
+            cBorder.BorderBrush = normalBorderBrush;
+            vBorder.BorderBrush = normalBorderBrush;
+
+            guidedLabel.Text = commandInfo;
+            guidedLabel.Background = GetCommandBrush(
+                commandWasProcessedByNavigator,
+                classic: true);
+
+            rightListBorder.BorderBrush = Brushes.Transparent;
+            bottomListBorder.BorderBrush = Brushes.Transparent;
+            searchBorder.BorderBrush = Brushes.Transparent;
+
+            switch (currentState)
+            {
+                case State.Filter:
+                    bottomListBorder.BorderBrush = activeBorderBrush;
+                    break;
+
+                case State.Choice:
+                    rightListBorder.BorderBrush = activeBorderBrush;
+                    break;
+
+                default:
+                    searchBorder.BorderBrush = activeBorderBrush;
+                    break;
+            }
+        }
+
+        private Brush GetCommandBrush(bool commandWasProcessedByNavigator, bool classic)
+        {
+            Color color = commandWasProcessedByNavigator
+                ? navigator.CommandColor()
+                : inputHandler.CommandColor(classic);
+
+            return GetCachedBrush(color);
+        }
+
+        private Brush GetCachedBrush(Color color)
+        {
+            if (commandBrushes.TryGetValue(color, out Brush? brush))
+                return brush;
+
+            Brush newBrush = CreateFrozenBrush(color);
+            commandBrushes[color] = newBrush;
+            return newBrush;
+        }
+
+        // =========================================================
+        // VERSE DISPLAY
+        // =========================================================
+
+        private void UpdateVerseDisplay(bool force = false)
+        {
+            Verse currentVerse = navigator.CurrentVerse;
+            int translationNumber = _database.TranslationNumber();
+
+            bool verseIsUnchanged =
+                currentVerse.BookId == lastDisplayedBook &&
+                currentVerse.Chapter == lastDisplayedChapter &&
+                currentVerse.VerseNumber == lastDisplayedVerse &&
+                translationNumber == lastDisplayedTranslation;
+
+            if (!force && verseIsUnchanged)
+            {
+                // A resize can require a new font size even when the verse
+                // itself has not changed. This method skips measuring unless
+                // the available text area has actually changed.
+                AdjustVerseFontSize();
+                UpdateGuidedVersePosition();
+                return;
+            }
+
+            titleBox.Text = currentVerse.ToString();
+            verseBox.Text = currentVerse.Text;
             translationBox.Text = _database.TranslationName();
-            aliasBox.Text = inputHandler.AliasForThisVerse(navigator.VerseEncodedNumber());
-            AdjustVerseFontSize();
+            aliasBox.Text = navigator.AliasForCurrentVerse();
+
+            AdjustVerseFontSize(force: true);
+
+            lastDisplayedBook = currentVerse.BookId;
+            lastDisplayedChapter = currentVerse.Chapter;
+            lastDisplayedVerse = currentVerse.VerseNumber;
+            lastDisplayedTranslation = translationNumber;
+
+            UpdateGuidedVersePosition();
         }
 
-        private void ChangeBackgroundImage(Direct direction)
+        private void UpdateGuidedVersePosition()
         {
-            string[] backgrounds =
+            if (layout != Layout.Guided)
+                return;
+
+            Verse currentVerse = navigator.CurrentVerse;
+            int translationNumber = _database.TranslationNumber();
+
+            if (currentVerse.BookId == lastGuidedBook &&
+                currentVerse.Chapter == lastGuidedChapter &&
+                currentVerse.VerseNumber == lastGuidedVerse &&
+                translationNumber == lastGuidedTranslation)
             {
-                "images/dbw59.jpg",
-                "images/dbw02.jpg",
-                "images/dbw04.jpg",
-                "images/dbw08.jpg",
-                "images/dbw16.jpg",
-                "images/dbw17.jpg"
-            };
+                return;
+            }
 
-            int index = Array.IndexOf(backgrounds, backgroundImagePath);
+            string[] bookCodes = GetGuidedBookCodes(translationNumber);
+            string bookCode = bookCodes[currentVerse.BookId - 1];
 
-            if (index < 0)
-                index = 0;
+            guidedBookBox.Text = bookCode;
+            guidedChapterBox.Text = currentVerse.Chapter.ToString();
+            guidedVerseBox.Text = currentVerse.VerseNumber.ToString();
 
-            int step = direction switch
-            {
-                Direct.Up => 1,
-                Direct.Down => -1,
-                _ => 0
-            };
-
-            index = (index + step + backgrounds.Length)
-                % backgrounds.Length;
-
-            backgroundImagePath = backgrounds[index];
-
-            BackgroundBrush.ImageSource = new BitmapImage(
-                new Uri(backgroundImagePath, UriKind.Relative));
+            lastGuidedBook = currentVerse.BookId;
+            lastGuidedChapter = currentVerse.Chapter;
+            lastGuidedVerse = currentVerse.VerseNumber;
+            lastGuidedTranslation = translationNumber;
         }
 
-        private void OpenHelpWindow()
+        private string[] GetGuidedBookCodes(int translationNumber)
         {
-            HelpWindow helpWindow = new HelpWindow();
-            helpWindow.ShowDialog();
+            if (guidedBookCodes.TryGetValue(translationNumber, out string[]? cachedCodes))
+                return cachedCodes;
+
+            string[] titles = Enumerable.Range(1, 66)
+                .Select(id => new Verse { BookId = id }.Title())
+                .ToArray();
+
+            string[] names = titles
+                .Select(title => new string(
+                    title.Where(char.IsLetterOrDigit).ToArray()))
+                .ToArray();
+
+            // If a complete book name begins with another complete book name,
+            // use its initials to avoid ambiguous prefixes (for example AWIT).
+            for (int i = 0; i < names.Length; i++)
+            {
+                bool startsWithAnotherTitle = false;
+
+                for (int j = 0; j < names.Length; j++)
+                {
+                    if (i == j)
+                        continue;
+
+                    if (names[i].Length > names[j].Length &&
+                        names[i].StartsWith(names[j], StringComparison.Ordinal))
+                    {
+                        startsWithAnotherTitle = true;
+                        break;
+                    }
+                }
+
+                if (startsWithAnotherTitle)
+                {
+                    names[i] = string.Concat(
+                        titles[i]
+                            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(word => word[0]));
+                }
+            }
+
+            int codeLength = 1;
+
+            for (; codeLength <= 5; codeLength++)
+            {
+                string[] candidateCodes = names
+                    .Select(name => name[..Math.Min(codeLength, name.Length)])
+                    .ToArray();
+
+                if (candidateCodes.Distinct(StringComparer.Ordinal).Count() == 66)
+                    break;
+            }
+
+            if (codeLength > 5)
+            {
+                throw new InvalidOperationException(
+                    "Could not uniquely identify every book.");
+            }
+
+            string[] result = names
+                .Select(name => name[..Math.Min(codeLength, name.Length)])
+                .ToArray();
+
+            guidedBookCodes[translationNumber] = result;
+            return result;
         }
 
-        private void AdjustVerseFontSize()
+        private void AdjustVerseFontSize(bool force = false)
         {
             if (verseBox == null || verseContainer == null)
                 return;
@@ -584,19 +809,24 @@ namespace navigationshurely
             if (availableWidth <= 0 || availableHeight <= 0)
                 return;
 
+            if (!force &&
+                availableWidth == lastMeasuredVerseWidth &&
+                availableHeight == lastMeasuredVerseHeight)
+            {
+                return;
+            }
+
             double low = MinVerseFontSize;
             double high = MaxVerseFontSize;
 
             while (high - low > 1)
             {
                 double middle = (low + high) / 2;
-
                 verseBox.FontSize = middle;
 
                 verseBox.Measure(new Size(
                     availableWidth,
-                    double.PositiveInfinity
-                ));
+                    double.PositiveInfinity));
 
                 if (verseBox.DesiredSize.Height <= availableHeight)
                     low = middle;
@@ -605,6 +835,136 @@ namespace navigationshurely
             }
 
             verseBox.FontSize = low;
+            lastMeasuredVerseWidth = availableWidth;
+            lastMeasuredVerseHeight = availableHeight;
+        }
+
+        // =========================================================
+        // SEARCH RESULTS AND FILTERS
+        // =========================================================
+
+        private void DisplaySearch(State state)
+        {
+            List<Verse> searchResults = navigator.LocatedVerses();
+
+            rightList.ItemTemplate =
+                (DataTemplate)FindResource("SearchVerseTemplate");
+            rightList.ItemsSource = searchResults;
+
+            int frequency = searchResults.Count;
+            string query = navigator.ActualSearchQuery();
+
+            if (frequency == 1)
+            {
+                frequencyBox.Text = $"\"{query}\" : 1 result found";
+            }
+            else if (frequency > 1)
+            {
+                frequencyBox.Text = $"\"{query}\" : {frequency} results found";
+            }
+            else
+            {
+                frequencyBox.Text = $"\"{query}\" : No results found";
+            }
+        }
+
+        private void DisplayFilters()
+        {
+            bottomList.ItemsSource = navigator.GetActiveSearchFilters();
+        }
+
+        private void ScrollRightList()
+        {
+            int selectedSearchIndex = navigator.SelectedSearchIndex();
+
+            if (selectedSearchIndex >= 0 &&
+                selectedSearchIndex < rightList.Items.Count)
+            {
+                rightList.ScrollIntoView(rightList.Items[selectedSearchIndex]);
+            }
+        }
+
+        private void rightList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            DependencyObject? clickedElement = e.OriginalSource as DependencyObject;
+
+            ListViewItem? clickedItem = FindParent<ListViewItem>(clickedElement);
+
+            if (clickedItem == null)
+                return;
+
+            object item = rightList.ItemContainerGenerator
+                .ItemFromContainer(clickedItem);
+
+            // SEARCH RESULT CLICK
+            if (item is Verse clickedVerse)
+            {
+                navigator.SetCurrentVerse(clickedVerse);
+                UpdateVerseDisplay();
+            }
+
+            // ALIAS SUGGESTION CLICK
+            else if (item is AliasSuggestion clickedAlias)
+            {
+                // Navigate using the selected alias.
+                bool successful = navigator.SetCurrentVerseByAlias(clickedAlias.Alias);
+
+                if (!successful)
+                    return;
+
+                // Clear the unfinished alias command.
+                inputHandler.AliasSuggestionSelected();
+
+                // Refresh the displayed verse.
+                UpdateVerseDisplay();
+
+                // Refresh the interface and remove the alias suggestions.
+                InterfaceUpdate(commandWasProcessedByNavigator: false);
+            }
+        }
+
+        private static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
+        {
+            while (child != null)
+            {
+                if (child is T parent)
+                    return parent;
+
+                child = VisualTreeHelper.GetParent(child);
+            }
+
+            return null;
+        }
+
+        // =========================================================
+        // BACKGROUND, HELP, AND CLIPBOARD
+        // =========================================================
+
+        private void ChangeBackgroundImage(Direct direction)
+        {
+            int index = Array.IndexOf(Backgrounds, backgroundImagePath);
+
+            if (index < 0)
+                index = 0;
+
+            int step = direction switch
+            {
+                Direct.Up => 1,
+                Direct.Down => -1,
+                _ => 0
+            };
+
+            index = (index + step + Backgrounds.Length) % Backgrounds.Length;
+            backgroundImagePath = Backgrounds[index];
+
+            BackgroundBrush.ImageSource = new BitmapImage(
+                new Uri(backgroundImagePath, UriKind.Relative));
+        }
+
+        private void OpenHelpWindow()
+        {
+            HelpWindow helpWindow = new HelpWindow();
+            helpWindow.ShowDialog();
         }
 
         private void CopyVerse()
@@ -619,140 +979,18 @@ namespace navigationshurely
 
         private void CopyAll()
         {
-            string verseTitle = titleBox.Text;
-            string verseContent = verseBox.Text;
-            Clipboard.SetText(verseTitle + "\n" + verseContent);
+            Clipboard.SetText(titleBox.Text + "\n" + verseBox.Text);
         }
 
-        private void DisplaySearch(State state)
+        // =========================================================
+        // WPF RESOURCE HELPERS
+        // =========================================================
+
+        private static Brush CreateFrozenBrush(Color color)
         {
-            List<Verse> SearchResults = navigator.LocatedVerses();
-            rightList.ItemTemplate = (DataTemplate)FindResource("SearchVerseTemplate");
-            rightList.ItemsSource = SearchResults;
-            int frequency = SearchResults.Count;
-            string frequencyText;
-            if (frequency == 1)
-            {
-                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + frequency.ToString() + " result found";
-                frequencyBox.Text = frequencyText;
-            }
-            else if (frequency > 1)
-            {
-                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + frequency.ToString() + " results found";
-                frequencyBox.Text = frequencyText;
-            }
-            else
-            {
-                frequencyText = "\"" + navigator.ActualSearchQuery() + "\" : " + "No results found";
-                frequencyBox.Text = frequencyText;
-            }
-        }
-
-        private void DisplayFilters()
-        {
-            List<String> FilterResults = navigator.GetActiveSearchFilters();
-            bottomList.ItemsSource = FilterResults;
-        }
-
-        private void ScrollRightList()
-        {
-            int selectedSearchIndex = navigator.SelectedSearchIndex();
-            if (rightList.Items.Count > selectedSearchIndex)
-            {
-                //Verse verseForTesting = (Verse) rightList.Items[selectedSearchIndex];
-                // Tell WPF to bring that verse into view.
-                rightList.ScrollIntoView(rightList.Items[selectedSearchIndex]);
-            }
-        }
-
-        private void rightList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            DependencyObject clickedElement = e.OriginalSource as DependencyObject;
-
-            ListViewItem clickedItem = FindParent<ListViewItem>(clickedElement);
-
-            if (clickedItem != null)
-            {
-                object item = rightList.ItemContainerGenerator.ItemFromContainer(clickedItem);
-
-                if (item is Verse clickedVerse)
-                {
-                    navigator.SetCurrentVerse(clickedVerse);
-                    UpdateVerseDisplay();
-                }
-            }
-        }
-
-        private T FindParent<T>(DependencyObject child) where T : DependencyObject
-        {
-            while (child != null)
-            {
-                if (child is T parent)
-                    return parent;
-
-                child = VisualTreeHelper.GetParent(child);
-            }
-
-            return null;
-        }
-
-        private (string Book, string Chapter, string Verse) GetVerseParts(Verse verse)
-        {
-            // Retrieve all book names using the existing public Title() method.
-            string[] titles = Enumerable.Range(1, 66)
-                .Select(id => new Verse { BookId = id }.Title())
-                .ToArray();
-
-            // Remove spaces and punctuation to create searchable names.
-            string[] names = titles
-                .Select(name => new string(name.Where(char.IsLetterOrDigit).ToArray()))
-                .ToArray();
-
-            // Handle cases where one complete book name is a prefix of another.
-            // Example: AWIT and AWIT NG MGA AWIT.
-            for (int i = 0; i < names.Length; i++)
-            {
-                bool startsWithAnotherTitle = names
-                    .Where((other, j) => j != i)
-                    .Any(other =>
-                        names[i].Length > other.Length &&
-                        names[i].StartsWith(other, StringComparison.Ordinal));
-
-                if (startsWithAnotherTitle)
-                {
-                    names[i] = string.Concat(
-                        titles[i]
-                            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(word => word[0])
-                    );
-                }
-            }
-
-            // Find the minimum number of characters needed to uniquely
-            // identify every book.
-            int codeLength = 1;
-
-            for (; codeLength <= 5; codeLength++)
-            {
-                string[] codes = names
-                    .Select(name => name[..Math.Min(codeLength, name.Length)])
-                    .ToArray();
-
-                if (codes.Distinct(StringComparer.Ordinal).Count() == 66)
-                    break;
-            }
-
-            if (codeLength > 5)
-                throw new InvalidOperationException("Could not uniquely identify every book.");
-
-            // Extract the identifier for the requested verse.
-            string book = names[verse.BookId - 1];
-
-            string bookString = book[..Math.Min(codeLength, book.Length)];
-            string chapterString = verse.Chapter.ToString();
-            string verseString = verse.VerseNumber.ToString();
-
-            return (bookString, chapterString, verseString);
+            SolidColorBrush brush = new SolidColorBrush(color);
+            brush.Freeze();
+            return brush;
         }
     }
 }
