@@ -19,6 +19,8 @@ namespace navigationshurely.models
 
         public Layout LastPreferredLayout { get; set; }
 
+        public bool LastOptionsHint { get; set; }
+
         public Dictionary<int, Verse> LastMarks { get; set; }
 
         public AppSettings() 
@@ -29,7 +31,8 @@ namespace navigationshurely.models
             LastVerseNumber = 1;
             LastTranslationNumber = 1;
             LastMarks = new Dictionary<int, Verse>();
-            LastPreferredLayout = Layout.Classic;
+            LastPreferredLayout = Layout.Guided;
+            LastOptionsHint = true;
         }
     }
 }

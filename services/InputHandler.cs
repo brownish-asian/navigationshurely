@@ -1,6 +1,4 @@
-﻿
-
-using navigationshurely.services;
+﻿using navigationshurely.services;
 using System.Collections.Generic;
 using System.Windows.Media;
 using System.Windows.Input;
@@ -14,6 +12,7 @@ namespace navigationshurely.Services
         public event Action? ExitApplication;
         public event Action<bool>? ShowMarks;
         public event Action<bool>? PressEnterVisibilityChanged;
+        public event Action? ToggleOptions;
 
         private readonly Linguist _linguist;
 
@@ -31,9 +30,42 @@ namespace navigationshurely.Services
                 visible => PressEnterVisibilityChanged?.Invoke(visible);
         }
 
+        public bool SearchResultsAvailable => _linguist.SearchResultsAvailable;
+
+        public void SetSearchResultsAvailable(bool available)
+        {
+            _linguist.SetSearchResultsAvailable(available);
+        }
+
         public string? AliasSuggestionPrefix()
         {
             return _linguist.AliasSuggestionPrefix();
+        }
+
+        public string? BookAliasSuggestionPrefix()
+        {
+            return _linguist.BookAliasSuggestionPrefix();
+        }
+
+        public List<KeyValuePair<string, int>> GetBookAliasSuggestions(string prefix)
+        {
+            return _linguist.GetBookAliasSuggestions(prefix);
+        }
+
+        public List<KeyValuePair<char, int>> GetMovementQuantifierOptions()
+        {
+            return _linguist.GetMovementQuantifierOptions();
+        }
+
+        public EntireCommandStatus ProcessCharacter(char character)
+        {
+            return _linguist.Feed(character);
+        }
+
+        public void BookAliasSuggestionSelected()
+        {
+            // Uses the same parser-reset logic as semicolon suggestions.
+            _linguist.AliasSuggestionSelected();
         }
 
         public void AliasSuggestionSelected()
@@ -65,6 +97,18 @@ namespace navigationshurely.Services
         public Command? GetCommand()
         {
             return _linguist.TakeCommand();
+        }
+
+        // One-shot access to the raw phrase captured at search submission.
+        public string? TakeSubmittedSearchPhrase()
+        {
+            return _linguist.TakeSubmittedSearchPhrase();
+        }
+
+        // Restore the navigation mode that preceded the current search session.
+        public void ExitSearchMode()
+        {
+            _linguist.ExitSearchMode();
         }
 
         public State getState()
@@ -122,6 +166,12 @@ namespace navigationshurely.Services
                 {
                     character = '\u0003'; // Shift+Tab
                     return true;
+                }
+                if (key == Key.OemQuestion)
+                {
+                    character = '?'; // Shift+/
+                    ToggleOptions?.Invoke();
+                    return false;
                 }
             }
 

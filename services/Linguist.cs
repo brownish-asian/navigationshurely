@@ -26,9 +26,18 @@ namespace navigationshurely.services
         private string searchQuery = string.Empty;
         private string wholeQueryWithCommas;
         private string lastSubmittedSearch;
+
+        // Set only when a search is actually submitted with Enter. InputHandler
+        // consumes this value once; it is deliberately separate from the
+        // comma-serialized search configuration stored in Command.SearchText.
+        private string? submittedSearchPhrase;
         private string commandString = string.Empty;
         private bool normalChoosingMode = true;
         private bool justANormalStateChange = false;
+
+        // Choice mode is only keyboard-focusable after the current search
+        // session has actually produced at least one result.
+        private bool searchResultsAvailable;
         private readonly AliasCatalogue _aliasCatalog;
 
         public event Action<bool>? SearchUiVisibilityChanged;
@@ -287,6 +296,67 @@ namespace navigationshurely.services
             return commandBuffer;
         }
 
+        public string? BookAliasSuggestionPrefix()
+        {
+            // Book suggestions are available whenever BOOK mode is idle.
+            if (state != State.B)
+                return null;
+
+            // When the parser is waiting for a command, show every book.
+            if (parseState == ParseState.Start)
+                return string.Empty;
+
+            // Don't display suggestions for invalid unfinished input.
+            if (validity == EntireCommandStatus.Invalid)
+                return null;
+
+            // Only filter suggestions while typing a possible book alias.
+            if (parseState != ParseState.ReadingBookAlias)
+                return null;
+
+            if (string.IsNullOrEmpty(commandBuffer) ||
+                !BPrefixes.Contains(commandBuffer))
+            {
+                return null;
+            }
+
+            return commandBuffer;
+        }
+
+        public List<KeyValuePair<string, int>> GetBookAliasSuggestions(string prefix)
+        {
+            // An empty prefix intentionally matches every book.
+            return BCommands
+                .Where(pair => pair.Key.StartsWith(
+                    prefix,
+                    StringComparison.Ordinal))
+                .OrderBy(pair => pair.Value)
+                .ToList();
+        }
+
+        public List<KeyValuePair<char, int>> GetMovementQuantifierOptions()
+        {
+            // Zero is excluded because the current movement parser treats
+            // a zero quantity as its default movement of one.
+            IEnumerable<KeyValuePair<char, int>> options;
+
+            // Fast quantifiers are only recognised when a new quantity
+            // is being entered, not halfway through an existing number.
+            if (parseState == ParseState.Start)
+            {
+                options = Quantifiers
+                    .Where(pair => pair.Value > 0);
+                options = options.Concat(FastQuantifiers);
+            }
+            else
+            {
+                options = Quantifiers.ToList();
+            }
+            return options
+                .OrderBy(pair => pair.Value)
+                .ToList();
+        }
+
         public string ModeString()
         {
             if (state == State.B) return "BOOK Mode";
@@ -366,6 +436,15 @@ namespace navigationshurely.services
             return result;
         }
 
+        // Returns the raw phrase from the most recently submitted search,
+        // then clears it so it cannot accidentally be reused by another command.
+        public string? TakeSubmittedSearchPhrase()
+        {
+            string? result = submittedSearchPhrase;
+            submittedSearchPhrase = null;
+            return result;
+        }
+
 
         //MAIN INPUT HANDLER
         public EntireCommandStatus Feed(char k)
@@ -405,6 +484,19 @@ namespace navigationshurely.services
             //book mode
             if (state == State.B)
             {
+                // Allow Backspace to edit an unfinished book alias.
+                if (parseState == ParseState.ReadingBookAlias)
+                {
+                    if (k == '{')
+                    {
+                        return BackspaceBookAlias(false);
+                    }
+                    else if (k == '\u0006')
+                    {
+                        return BackspaceBookAlias(true);
+                    }
+                }
+
                 commandBuffer += k;
 
                 if (BCommands.TryGetValue(commandBuffer, out int position))
@@ -455,10 +547,7 @@ namespace navigationshurely.services
                     }
                     else if (k == '/')
                     {
-                        previousStateBeforeSearch = state;
-                        justANormalStateChange = true;
-                        state = State.Query;
-                        EnterQueryState();
+                        BeginSearchMode();
                         validity = EntireCommandStatus.Valid;
                         return validity;
                     }
@@ -493,10 +582,7 @@ namespace navigationshurely.services
                         validity = EntireCommandStatus.Valid;
                         return validity;
                     case '/':
-                        previousStateBeforeSearch = state;
-                        state = State.Query;
-                        justANormalStateChange = true;
-                        EnterQueryState();
+                        BeginSearchMode();
                         validity = EntireCommandStatus.Valid;
                         return validity;
                     default:
@@ -629,6 +715,48 @@ namespace navigationshurely.services
             return validity;
         }
 
+        private EntireCommandStatus BackspaceBookAlias(bool controlHeld)
+        {
+            if (controlHeld)
+            {
+                // Ctrl+Backspace clears the entire unfinished alias.
+                commandBuffer = string.Empty;
+                parseState = ParseState.Start;
+                commandString = string.Empty;
+
+                validity = EntireCommandStatus.Incomplete;
+                return validity;
+            }
+
+            // Remove the last character.
+            if (commandBuffer.Length > 0)
+                commandBuffer = commandBuffer[..^1];
+
+            // Keep the displayed command synchronized with the input.
+            if (commandString.Length > 0)
+                commandString = commandString[..^1];
+
+            if (commandBuffer.Length == 0)
+            {
+                parseState = ParseState.Start;
+            }
+            else if (BPrefixes.Contains(commandBuffer))
+            {
+                // The shortened prefix is still a valid book prefix.
+                parseState = ParseState.ReadingBookAlias;
+            }
+            else
+            {
+                // Defensive recovery.
+                commandBuffer = string.Empty;
+                parseState = ParseState.Start;
+                commandString = string.Empty;
+            }
+
+            validity = EntireCommandStatus.Incomplete;
+            return validity;
+        }
+
         private EntireCommandStatus BackspaceSemicolonAlias(bool controlHeld)
         {
             if (controlHeld)
@@ -670,61 +798,68 @@ namespace navigationshurely.services
 
         private EntireCommandStatus Search(char k)
         {
-            //toggles on and off SEARCH mode
+            // A new search session is exited independently of parser details.
             if (k == '/')
             {
-                justANormalStateChange = true;
-                state = previousStateBeforeSearch;
-                commandString = "";
-                NotifySearchDraftVisibilityChanged();
-                SearchUiVisibilityChanged?.Invoke(false); // Close search UI
-                validity = EntireCommandStatus.Valid;
+                ExitSearchMode();
                 return validity;
             }
 
-            //tab character (switching focused ui's)
-            else if (k == '+')
+            // Moving focus away from a half-entered filter cancels that
+            // unfinished token rather than carrying filter parser state into
+            // Query or Results mode. Completed filters remain untouched.
+            if ((k == '+' || k == '\u0003') &&
+                state == State.Filter &&
+                (parseState != ParseState.Start || activeFilter != null))
+            {
+                parseState = ParseState.Start;
+                commandBuffer = string.Empty;
+                quantifier = 0;
+                activeFilter = null;
+                commandString = string.Empty;
+                NotifySearchDraftVisibilityChanged();
+            }
+
+            // Tab cycles through only useful views. Before a search has
+            // returned results, Choice is omitted from the cycle entirely.
+            if (k == '+')
             {
                 justANormalStateChange = true;
-                commandString = "";
+                commandString = string.Empty;
                 state = state switch
                 {
                     State.Query => State.Filter,
-                    State.Filter => State.Choice,
+                    State.Filter => HasCurrentSearchResults ? State.Choice : State.Query,
                     State.Choice => State.Query,
                     _ => State.Query
                 };
+
                 if (state == State.Query)
-                {
                     EnterQueryState();
-                }
                 else
-                {
                     NotifySearchDraftVisibilityChanged();
-                }
 
                 validity = EntireCommandStatus.Valid;
                 return validity;
             }
-            else if (k == '\u0003')
+
+            // Shift+Tab follows the same available-view rules in reverse.
+            if (k == '\u0003')
             {
-                commandString = "";
+                commandString = string.Empty;
                 justANormalStateChange = true;
                 state = state switch
                 {
                     State.Filter => State.Query,
                     State.Choice => State.Filter,
-                    State.Query => State.Choice,
+                    State.Query => HasCurrentSearchResults ? State.Choice : State.Filter,
                     _ => State.Query
                 };
+
                 if (state == State.Query)
-                {
                     EnterQueryState();
-                }
                 else
-                {
                     NotifySearchDraftVisibilityChanged();
-                }
 
                 validity = EntireCommandStatus.Valid;
                 return validity;
@@ -737,9 +872,19 @@ namespace navigationshurely.services
                 if (k == '_')
                 {
                     // Query text is already synchronized with the draft.
-                    // Enter submits it; it is not another filter edit.
+                    // Enter submits the draft only when it contains an actual
+                    // search target. This prevents an empty initial query from
+                    // accidentally asking the database for every verse.
+                    if (!HasSearchCriteria())
+                    {
+                        commandString = string.Empty;
+                        validity = EntireCommandStatus.Valid;
+                        NotifySearchDraftVisibilityChanged();
+                        return validity;
+                    }
+
                     state = State.Filter;
-                    commandString = "";
+                    commandString = string.Empty;
                     return ShipOutProperSearchCommand();
                 }
                 else if (k == '{')
@@ -788,6 +933,13 @@ namespace navigationshurely.services
                     if (parseState != ParseState.Start || activeFilter != null)
                     {
                         validity = EntireCommandStatus.Incomplete;
+                        return validity;
+                    }
+
+                    if (!HasSearchCriteria())
+                    {
+                        validity = EntireCommandStatus.Valid;
+                        NotifySearchDraftVisibilityChanged();
                         return validity;
                     }
 
@@ -963,7 +1115,11 @@ namespace navigationshurely.services
                     switch (k)
                     {
                         case '_':
-                            FoundTheSearchedVerse();
+                            // Defensive guard: never manufacture a selection
+                            // when the current search has no result rows.
+                            if (HasCurrentSearchResults)
+                                FoundTheSearchedVerse();
+
                             validity = EntireCommandStatus.Valid;
                             return validity;
 
@@ -1202,6 +1358,10 @@ namespace navigationshurely.services
             if (Quantifiers.TryGetValue(k, out int digit))
             {
                 quantifier = (quantifier) * 10 + digit;
+                if (quantifier > 1000)
+                {
+                    return NotValid();
+                }
                 previousQuantifier = quantifier;
                 parseState = ParseState.ReadingQuantifier;
                 validity = EntireCommandStatus.Incomplete;
@@ -1212,6 +1372,10 @@ namespace navigationshurely.services
             if (char.IsDigit(k))
             {
                 quantifier = (quantifier) * 10 + (int)char.GetNumericValue(k);
+                if (quantifier > 1000)
+                {
+                    return NotValid();
+                }
                 previousQuantifier = quantifier;
                 parseState = ParseState.ReadingQuantifier;
                 validity = EntireCommandStatus.Incomplete;
@@ -1236,7 +1400,7 @@ namespace navigationshurely.services
 
         private EntireCommandStatus CompleteMovement(Direct direction)
         {
-            if (quantifier != 0)
+            if (quantifier != 0 && quantifier <= 200)
             {
                 command = new Command
                 {
@@ -1244,15 +1408,12 @@ namespace navigationshurely.services
                     Quantity = quantifier,
                     Direction = direction
                 };
-                parseState = ParseState.Start;
-                quantifier = 0;
 
                 validity = EntireCommandStatus.Valid;
                 return validity;
             }
 
-            validity = EntireCommandStatus.Invalid;
-            return validity;
+            return NotValid();
         }
 
         private EntireCommandStatus TranslationChange()
@@ -1317,6 +1478,10 @@ namespace navigationshurely.services
 
         private EntireCommandStatus ShipOutProperSearchCommand()
         {
+            // Capture the source phrase before the structured search draft is
+            // handed to the database. MainWindow must never parse SearchText
+            // to reconstruct the user's original input.
+            submittedSearchPhrase = searchQuery;
             command = new Command { Mode = State.Query, Quantity = 0, Direction = Direct.Absolute, SearchText = wholeQueryWithCommas };
             lastSubmittedSearch = wholeQueryWithCommas;
             parseState = ParseState.Start;
@@ -1358,16 +1523,81 @@ namespace navigationshurely.services
                 canSubmitFromCurrentState && hasUnsubmittedChanges);
         }
 
+        // Leaves Query / Filter / Choice mode through the same cleanup path
+        // used by pressing '/'. MainWindow uses this when it consumes a special
+        // submitted search so the parser, rather than WPF, restores its prior mode.
+        public void ExitSearchMode()
+        {
+            if (state != State.Query && state != State.Filter && state != State.Choice)
+                return;
+
+            justANormalStateChange = true;
+            state = previousStateBeforeSearch;
+            ResetCommand();
+            choiceCommandBuffer = string.Empty;
+            normalChoosingMode = true;
+            activeFilter = null;
+            commandString = string.Empty;
+            searchResultsAvailable = false;
+            submittedSearchPhrase = null;
+            NotifySearchDraftVisibilityChanged();
+            SearchUiVisibilityChanged?.Invoke(false);
+            validity = EntireCommandStatus.Valid;
+        }
+
+        private void BeginSearchMode()
+        {
+            previousStateBeforeSearch = state;
+            state = State.Query;
+            justANormalStateChange = true;
+
+            // Results belong to the previous mode/session and must not be
+            // navigable until this session submits a search of its own.
+            searchResultsAvailable = false;
+            choiceCommandBuffer = string.Empty;
+            normalChoosingMode = true;
+
+            EnterQueryState();
+            SearchUiVisibilityChanged?.Invoke(true);
+        }
+
         private void EnterQueryState()
         {
-            // Query mode starts with no unfinished filter token.
+            // Query mode starts with no unfinished filter token. This method
+            // is also used when tabbing back to Query, so it must not reopen
+            // or reset the current search session's result availability.
             parseState = ParseState.Start;
             commandBuffer = string.Empty;
             quantifier = 0;
             activeFilter = null;
-            SearchUiVisibilityChanged?.Invoke(true);  // Open search UI
             commandString = "/" + searchQuery;
             SyncQueryIntoSearchDraft();
+        }
+
+        public void SetSearchResultsAvailable(bool available)
+        {
+            searchResultsAvailable = available;
+        }
+
+        // A result list is selectable only while it still corresponds to the
+        // exact draft that produced it. Editing and then reverting a draft
+        // makes the previous result set current again without a new search.
+        private bool HasCurrentSearchResults =>
+            searchResultsAvailable &&
+            string.Equals(
+                wholeQueryWithCommas,
+                lastSubmittedSearch,
+                StringComparison.Ordinal);
+
+        public bool SearchResultsAvailable => HasCurrentSearchResults;
+
+        private bool HasSearchCriteria()
+        {
+            string[] parts = wholeQueryWithCommas.Split(',');
+
+            // Phrase plus book/chapter/verse/testament are the fields that
+            // actually identify content. Language/order/case alone do not.
+            return parts.Take(5).Any(part => !string.IsNullOrWhiteSpace(part));
         }
 
         private void FoundTheSearchedVerse()
@@ -1385,10 +1615,17 @@ namespace navigationshurely.services
 
         public void SelectNavigationMode(State target)
         {
-            if (target != State.B && target != State.C && target != State.V)
+            if (target != State.B && target != State.C &&
+                target != State.V && target != State.S)
             {
                 throw new ArgumentOutOfRangeException(nameof(target));
             }
+
+            // Re-selecting semicolon mode is a no-op so clicking its label
+            // cannot reset an unfinished semicolon command. Preserve the
+            // original B/C/V mode-click behavior.
+            if (state == State.S && target == State.S)
+                return;
 
             bool leavingSearch =
                 state == State.Query ||

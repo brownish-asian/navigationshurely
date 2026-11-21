@@ -303,10 +303,7 @@ public class BibleDatabase
         return searchTranslationId;
     }
 
-    private List<Verse> SearchCandidates(
-        SearchRequest request,
-        string[] words,
-        int searchTranslationId)
+    private List<Verse> SearchCandidates(SearchRequest request, string[] words, int searchTranslationId)
     {
         using var command = _connection.CreateCommand();
 
@@ -412,10 +409,7 @@ public class BibleDatabase
         return true;
     }
 
-    private static void AddLocationConditions(
-        SqliteCommand command,
-        List<string> conditions,
-        SearchRequest request)
+    private static void AddLocationConditions(SqliteCommand command, List<string> conditions, SearchRequest request)
     {
         if (request.BookId.HasValue)
         {

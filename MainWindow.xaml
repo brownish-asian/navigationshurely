@@ -21,6 +21,88 @@
 
             </StackPanel>
         </DataTemplate>
+        <!-- Book alias suggestions -->
+        <DataTemplate x:Key="BookAliasSuggestionTemplate">
+            <StackPanel HorizontalAlignment="Stretch">
+
+                <TextBlock
+            Text="{Binding Alias}"
+            Foreground="#FFEEFF36"
+            FontFamily="Consolas"
+            FontWeight="Bold"
+            FontSize="15"
+            TextAlignment="Center"/>
+
+                <TextBlock
+            Text="{Binding BookTitle}"
+            Foreground="#F1F5F9"
+            FontFamily="Consolas"
+            FontSize="10"
+            TextWrapping="Wrap"
+            TextAlignment="Center"/>
+
+            </StackPanel>
+        </DataTemplate>
+        <!-- Chapter / Verse quantifier options -->
+        <DataTemplate x:Key="MovementQuantifierTemplate">
+            <StackPanel HorizontalAlignment="Stretch"
+                        Cursor="Hand">
+
+                <TextBlock
+                    Text="{Binding Shortcut}"
+                    Foreground="#FFEEFF36"
+                    FontFamily="Consolas"
+                    FontWeight="Bold"
+                    FontSize="15"
+                    TextAlignment="Center"/>
+
+                <TextBlock
+                    Text="{Binding QuantityText}"
+                    Foreground="#F1F5F9"
+                    FontFamily="Consolas"
+                    FontSize="10"
+                    TextAlignment="Center"/>
+
+            </StackPanel>
+        </DataTemplate>
+
+
+        <!-- Chapter / Verse command endings -->
+        <DataTemplate x:Key="MovementEnderTemplate">
+            <StackPanel Orientation="Horizontal"
+                        Cursor="Hand">
+
+                <TextBlock
+                    Text="{Binding Shortcut}"
+                    Foreground="#FFEEFF36"
+                    FontFamily="Consolas"
+                    FontWeight="Bold"
+                    FontSize="13"
+                    VerticalAlignment="Center"/>
+
+                <TextBlock
+                    Text="{Binding Meaning}"
+                    Foreground="#F1F5F9"
+                    FontFamily="Consolas"
+                    FontSize="13"
+                    VerticalAlignment="Center"/>
+
+            </StackPanel>
+        </DataTemplate>
+
+
+        <!-- Original bottom-list appearance for search filters -->
+        <DataTemplate x:Key="BottomListTextTemplate">
+            <TextBlock Text="{Binding}"
+                       Foreground="#F1F5F9"
+                       FontFamily="Consolas"
+                       FontWeight="SemiBold"
+                       FontSize="14"
+                       TextWrapping="NoWrap"
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       SnapsToDevicePixels="True"/>
+        </DataTemplate>
         <!-- Existing search results: display the Verse.ToString() -->
         <DataTemplate x:Key="SearchVerseTemplate">
             <TextBlock Text="{Binding}"
@@ -135,12 +217,12 @@
 
         <!-- Header: aligned with the main text column rather than positioned by a fixed left margin. -->
         <StackPanel Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,60,0,0">
-            <TextBlock x:Name="titleBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="50" HorizontalAlignment="Left"/>
-            <TextBlock x:Name="translationBox" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="30" HorizontalAlignment="Left"/>
+            <TextBlock x:Name="titleBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="50" HorizontalAlignment="Left" MouseLeftButtonUp="titleBox_MouseRightButtonUp"/>
+            <TextBlock x:Name="translationBox" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="30" HorizontalAlignment="Left" MouseLeftButtonUp="translationBox_MouseLeftButtonUp"/>
         </StackPanel>
         <!-- Verse area: its width comes from the centre Grid column. -->
         <Grid x:Name="verseContainer" Grid.Row="1" Grid.Column="1" Margin="0,20,0,80">
-            <TextBlock x:Name="verseBox" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+            <TextBlock x:Name="verseBox" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center" MouseLeftButtonUp="verseBox_MouseLeftButtonUp" MouseRightButtonUp="verseBox_MouseRightButtonUp"/>
         </Grid>
         <!-- Right-side dynamic list border -->
         <Border x:Name="rightListBorder"
@@ -149,6 +231,7 @@
         HorizontalAlignment="Right"
         VerticalAlignment="Center"
         Margin="0,20,5,100"
+                Visibility="Collapsed"
         MinWidth="72"
         MaxHeight="{Binding ActualHeight, ElementName=verseContainer}"
         BorderBrush="#00FFFFFF"
@@ -296,15 +379,18 @@
         BorderThickness="2">
 
             <ListView x:Name="bottomList"
-              MinHeight="40"
-              MaxHeight="50"
-              HorizontalAlignment="Left"
-              VerticalAlignment="Bottom"
-              Background="Transparent"
-              BorderThickness="0"
-              Padding="0"
-              ScrollViewer.HorizontalScrollBarVisibility="Auto"
-              ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          MinHeight="40"
+          MaxHeight="50"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Bottom"
+          Background="Transparent"
+          Visibility="Collapsed"
+          BorderThickness="0"
+          Padding="0"
+          ItemTemplate="{StaticResource BottomListTextTemplate}"
+          MouseLeftButtonUp="bottomList_MouseLeftButtonUp"
+          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+          ScrollViewer.VerticalScrollBarVisibility="Disabled">
 
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -348,21 +434,6 @@
 
                     </Style>
                 </ListView.ItemContainerStyle>
-
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                           Foreground="#F1F5F9"
-                           FontFamily="Consolas"
-                           FontWeight="SemiBold"
-                           FontSize="14"
-                           TextWrapping="NoWrap"
-                           TextAlignment="Center"
-                           VerticalAlignment="Center"
-                           SnapsToDevicePixels="True"/>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-
             </ListView>
 
         </Border>
@@ -391,12 +462,12 @@
                Text="Press [Enter] to refresh search"
                Foreground="{StaticResource AccentBrush}"
                FontFamily="Consolas"
+                   Visibility="Collapsed"
                FontWeight="Bold"
                FontSize="16"
                VerticalAlignment="Bottom"
                HorizontalAlignment="Center"
-               Margin="0,0,20,50"
-               Visibility="Hidden"/>
+               Margin="0,0,20,50"/>
         <!-- Buffer box border -->
         <Border x:Name="bufferBoxBorder"
         Grid.Row="1"
@@ -433,15 +504,24 @@
 
             <!-- LEFT LABEL -->
             <Border
+                x:Name="searchBorder"
+                Tag="S"
+                MinWidth="64"
+                Background="Transparent"
                 BorderBrush="#00FFFFFF"
-                            x:Name="searchBorder"
-                            CornerRadius="4"
-                            Padding="2"
-                            BorderThickness="2"
-                             VerticalAlignment="Bottom"
-               HorizontalAlignment="Left"
-               Margin="0,0,15,0"  
-                >
+                CornerRadius="4"
+                Padding="2"
+                BorderThickness="2"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Left"
+                Margin="0,0,15,0"
+                Cursor="Hand"
+                ToolTip="Select Semicolon mode"
+                MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp"
+                MouseEnter="GuidedLabel_MouseEnter">
+                <Border.RenderTransform>
+                    <TranslateTransform Y="0"/>
+                </Border.RenderTransform>
                 <TextBlock x:Name="guidedLabel"
                Text=""
                Foreground="#000000"
@@ -653,5 +733,35 @@
         <!-- Hints -->
         <TextBlock x:Name="hintBoxOne" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="[space];f for help" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,50" Style="{StaticResource HintStyle}"/>
         <TextBlock x:Name="hintBoxTwo" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="[space];e to toggle UI" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,20" Style="{StaticResource HintStyle}"/>
+
+        <!-- Administrative terminal: a non-interactive overlay above the existing layout. -->
+        <Border x:Name="adminTerminalBorder"
+                Grid.Row="0"
+                Grid.Column="0"
+                Grid.RowSpan="2"
+                Grid.ColumnSpan="3"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="24"
+                Width="440"
+                MaxWidth="440"
+                Background="{StaticResource GlassBrush}"
+                BorderBrush="#68788C"
+                BorderThickness="1"
+                CornerRadius="5"
+                Padding="12,10"
+                Visibility="Collapsed"
+                Opacity="1"
+                IsHitTestVisible="False"
+                Panel.ZIndex="1000">
+            <TextBlock x:Name="adminTerminalText"
+                       Text="root@NavigationShurely:~# ADMIN SESSION INITIALISED"
+                       Foreground="{StaticResource SoftWhiteBrush}"
+                       FontFamily="Consolas"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       SnapsToDevicePixels="True"/>
+        </Border>
     </Grid>
 </Window>

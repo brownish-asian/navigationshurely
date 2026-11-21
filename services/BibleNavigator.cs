@@ -1,6 +1,4 @@
-﻿
-
-using navigationshurely.models;
+﻿using navigationshurely.models;
 using BibleApp.Data;
 using navigationshurely.services;
 using System;
@@ -18,13 +16,15 @@ public class BibleNavigator
     private List<Verse> History;
     private int indexVisited;
     private int maxUndos = 100;
-    private List<Verse> locatedVerses;
-    private List<Verse> filteringListedVerses;
+    // Search collections are always valid, even before the first search.
+    // The original null state made an early Enter in Choice mode crash.
+    private List<Verse> locatedVerses = new();
+    private List<Verse> filteringListedVerses = new();
     private int choiceVerseIndex = 0;
     private SearchRequest? userRequest;
     private bool isGlobalUiVisible;
-    private string searchQuery;
-    private string searchPortion;
+    private string searchQuery = string.Empty;
+    private string searchPortion = string.Empty;
     private EntireCommandStatus validityCheck;
     private Dictionary<int, Verse> markedVerses;
     private readonly AliasCatalogue _aliasCatalog;
@@ -337,15 +337,18 @@ public class BibleNavigator
 
     private void AbsoluteSearch(string? search)
     {
-        locatedVerses = _database.Search(userRequest);
+        // Deselect any previously displayed results before replacing them.
+        foreach (Verse oldVerse in locatedVerses)
+            oldVerse.Selected = false;
+
+        locatedVerses = _database.Search(userRequest) ?? new List<Verse>();
         filteringListedVerses = locatedVerses;
-        searchPortion = "";
+        searchPortion = string.Empty;
         choiceVerseIndex = 0;
 
-        if (filteringListedVerses.Count != 0)
-        {
-            filteringListedVerses[choiceVerseIndex].Selected = true;
-        }
+        if (filteringListedVerses.Count > 0)
+            filteringListedVerses[0].Selected = true;
+
         DisplaySearchResults?.Invoke(State.Choice);
         UserScrolledSomewhere?.Invoke();
     }
@@ -369,6 +372,13 @@ public class BibleNavigator
         if (filteringListedVerses.Count == 0)
             return;
 
+        // Keep the old index safe even if a previous filter/search changed
+        // the result count between navigation commands.
+        choiceVerseIndex = Math.Clamp(
+            choiceVerseIndex,
+            0,
+            filteringListedVerses.Count - 1);
+
         if (direction == Direct.Up)
             amount *= -1;
 
@@ -377,21 +387,12 @@ public class BibleNavigator
             0,
             filteringListedVerses.Count - 1);
 
-        // No movement means no updates necessary.
         if (newIndex == choiceVerseIndex)
             return;
 
-        // Deselect the old verse.
         filteringListedVerses[choiceVerseIndex].Selected = false;
-
-        // Update the navigator's selection.
         choiceVerseIndex = newIndex;
-
-        // Select the new verse.
         filteringListedVerses[choiceVerseIndex].Selected = true;
-
-        Verse justForTestingVerse = filteringListedVerses[choiceVerseIndex];
-        // Tell MainWindow to scroll the selected verse into view.
         UserScrolledSomewhere?.Invoke();
     }
 
@@ -400,23 +401,17 @@ public class BibleNavigator
         if (filteringListedVerses.Count == 0)
             return;
 
+        choiceVerseIndex = Math.Clamp(
+            choiceVerseIndex,
+            0,
+            filteringListedVerses.Count - 1);
+
         filteringListedVerses[choiceVerseIndex].Selected = false;
-
-        if (isItLast)
-        {
-            choiceVerseIndex = filteringListedVerses.Count - 1;
-        }
-        else
-        {
-            choiceVerseIndex = 0;
-        }
-
-        // Select the new verse.
+        choiceVerseIndex = isItLast
+            ? filteringListedVerses.Count - 1
+            : 0;
         filteringListedVerses[choiceVerseIndex].Selected = true;
-
-        // Tell MainWindow to scroll the selected verse into view.
         UserScrolledSomewhere?.Invoke();
-
     }
 
     private void UpdateFilteredVerses()
@@ -1191,4 +1186,3 @@ public class BibleNavigator
         CurrentVerse = _database.GetVerse(CurrentVerse.BookId, CurrentVerse.Chapter, CurrentVerse.VerseNumber)!;
     }
 }
-

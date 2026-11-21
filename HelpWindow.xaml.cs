@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Input;
 
@@ -17,8 +16,22 @@ namespace navigationshurely
             InitializeComponent();
         }
 
-        private void Window_PreviewKeyDown(
-            object sender, KeyEventArgs e)
+        // Appendix B contains 2,201 aliases. Its visual tree is kept in a
+        // DataTemplate and created only when the user expands the section.
+        private void AppendixB_Expanded(object sender, RoutedEventArgs e)
+        {
+            if (AppendixBContent.Content != null)
+                return;
+
+            AppendixBContent.ContentTemplate =
+                (DataTemplate)FindResource("AppendixBTemplate");
+
+            // A non-null Content value causes ContentControl to instantiate
+            // the deferred DataTemplate for the first time.
+            AppendixBContent.Content = new object();
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // Ctrl-based commands first.
             if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
@@ -37,6 +50,11 @@ namespace navigationshurely
 
                     case Key.F:
                         // Reserved for search.
+                        ScrollFullPageDown();
+                        e.Handled = true;
+                        return;
+                    case Key.B:
+                        ScrollFullPageUp();
                         e.Handled = true;
                         return;
 

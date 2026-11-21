@@ -10,6 +10,8 @@ using BibleApp.Data;
 using navigationshurely.models;
 using navigationshurely.Services;
 using navigationshurely.services;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace navigationshurely
 {
@@ -26,8 +28,13 @@ namespace navigationshurely
         // CONSTANTS AND FIXED RESOURCES
         // =========================================================
 
+        // Automatic sizing keeps the verse inside its normal display area.
+        // The user's adjustment is applied after that fit calculation, so it
+        // survives verse changes and window resizes.
         private const double MaxVerseFontSize = 70;
         private const double MinVerseFontSize = 5;
+        private const double MaxManualVerseFontSize = 120;
+        private const double VerseFontSizeStep = 2;
 
         private static readonly string[] Backgrounds =
         {
@@ -57,12 +64,47 @@ namespace navigationshurely
         private readonly BibleNavigator navigator;
         private readonly AliasCatalogue _aliasCatalog = new();
 
+        // Admin mode is application-level state, separate from the navigation grammar.
+        private readonly AdminSession adminSession = new();
+        private readonly TranslateTransform adminTerminalTransform = new();
+
+        // =========================================================
+        // CHAPTER / VERSE COMMAND OPTIONS
+        // =========================================================
+
+        private readonly List<MovementEnderOptionItem> movementEnderOptions = new()
+        {
+            new MovementEnderOptionItem
+            {
+                Character = ' ',
+                Shortcut = "SPACE",
+                Meaning = " - absolute"
+            },
+
+            new MovementEnderOptionItem
+            {
+                Character = 'j',
+                Shortcut = "j",
+                Meaning = " - down"
+            },
+
+            new MovementEnderOptionItem
+            {
+                Character = 'k',
+                Shortcut = "k",
+                Meaning = " - up"
+            }
+        };
+
         private AppSettings plumber = null!;
         private string backgroundImagePath = "images/dbw59.jpg";
         private Layout layout = Layout.Classic;
 
         private bool globalUiVisible = true;
         private bool searchUiRequestedVisible;
+        // Navigation hints are enabled by default to preserve the existing startup behaviour.
+        // Search results, search filters and marked verses do not depend on this setting.
+        private bool optionsVisible;
         private bool marksVisible;
         private bool enterVisible;
         private bool settingsSaved;
@@ -85,6 +127,21 @@ namespace navigationshurely
 
         private double lastMeasuredVerseWidth = -1;
         private double lastMeasuredVerseHeight = -1;
+        private double verseFontSizeAdjustment;
+
+        // Track animation generations so interrupted animations cannot
+        // accidentally hide controls that have since become visible.
+        private readonly Dictionary<UIElement, int> visibilityAnimationVersions = new();
+
+        private readonly Dictionary<UIElement, Visibility> visibilityAnimationTargets = new();
+
+        // The guided command label uses a short, isolated transform animation.
+        private int guidedLabelAnimationVersion;
+        private bool guidedLabelAnimationRunning;
+
+        // Independent animation bookkeeping for the administrative terminal.
+        private int adminTerminalAnimationVersion;
+        private bool adminTerminalAnimationRunning;
 
         // =========================================================
         // CONSTRUCTION AND LIFECYCLE
@@ -94,12 +151,18 @@ namespace navigationshurely
         {
             InitializeComponent();
 
+            // The terminal owns its transform and starts hidden on every launch.
+            adminTerminalBorder.RenderTransform = adminTerminalTransform;
+            adminTerminalBorder.Visibility = Visibility.Collapsed;
+            ResetAdminTerminalAnimation();
+
             SettingsGuy settingsGuy = new SettingsGuy();
             plumber = settingsGuy.loAd();
 
             backgroundImagePath = plumber.LastImageFilePath;
             BackgroundBrush.ImageSource = new BitmapImage(
                 new Uri(backgroundImagePath, UriKind.Relative));
+            optionsVisible = plumber.LastOptionsHint;
 
             normalBackgroundColor = CreateFrozenBrush(
                 Color.FromArgb(0x55, 0x07, 0x13, 0x20));
@@ -128,6 +191,29 @@ namespace navigationshurely
             Loaded += MainWindow_Loaded;
         }
 
+        public sealed class BookAliasSuggestionItem
+        {
+            public string Alias { get; set; } = string.Empty;
+            public string BookTitle { get; set; } = string.Empty;
+            public int BookId { get; set; }
+        }
+
+        public sealed class MovementQuantifierOptionItem
+        {
+            public char Character { get; set; }
+            public string Shortcut { get; set; } = string.Empty;
+            public string QuantityText { get; set; } = string.Empty;
+        }
+
+        public sealed class MovementEnderOptionItem
+        {
+            public char Character { get; set; }
+
+            public string Shortcut { get; set; } = string.Empty;
+
+            public string Meaning { get; set; } = string.Empty;
+        }
+
         private void ConnectNavigatorEvents()
         {
             navigator.HelpRequested += OpenHelpWindow;
@@ -149,10 +235,23 @@ namespace navigationshurely
             inputHandler.SearchUiVisibilityChanged += SetSearchUiRequestedVisibility;
             inputHandler.ShowMarks += ShowMarks;
             inputHandler.PressEnterVisibilityChanged += SetPressEnterVisibility;
+            inputHandler.ToggleOptions += ToggleOptions;
+        }
+
+        private void ToggleOptions()
+        {
+            // InputHandler raises this while ProcessKey is running. The normal
+            // key path calls InterfaceUpdate immediately afterwards, so this
+            // handler only changes state and avoids refreshing the lists twice.
+            optionsVisible = !optionsVisible;
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            // Admin sessions are intentionally memory-only and never restored.
+            adminTerminalBorder.Visibility = Visibility.Collapsed;
+            ResetAdminTerminalAnimation();
+
             UpdateVerseDisplay(force: true);
 
             if (layout == Layout.Classic)
@@ -176,6 +275,9 @@ namespace navigationshurely
 
         private void PrepareToClose()
         {
+            // Always invalidate and hide the transient terminal during shutdown.
+            ExitAdminSession();
+
             // Ctrl+Q calls this before Shutdown, and OnClosed calls it again.
             // Save once, using the navigator's current verse rather than a UI
             // field that might not have been populated yet.
@@ -191,6 +293,7 @@ namespace navigationshurely
             plumber.LastVerseNumber = currentVerse.VerseNumber;
             plumber.LastImageFilePath = backgroundImagePath;
             plumber.LastPreferredLayout = layout;
+            plumber.LastOptionsHint = optionsVisible;
 
             SettingsGuy settingsGuy = new SettingsGuy();
             settingsGuy.saVe(plumber);
@@ -203,26 +306,161 @@ namespace navigationshurely
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            EntireCommandStatus status = inputHandler.ProcessKey(e.Key);
+            // Escape belongs to the admin session only while it is active.
+            // Outside admin mode it continues through the original InputHandler path.
+            if (adminSession.IsActive && e.Key == Key.Escape)
+            {
+                ExitAdminSession();
+                e.Handled = true;
+                return;
+            }
 
+            // Global verse zoom shortcuts are intercepted before the parser.
+            // They therefore work in every mode, including partial aliases,
+            // filters, query editing and absolute-path input.
+            if (TryHandleVerseFontShortcut(e))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            EntireCommandStatus status = inputHandler.ProcessKey(e.Key);
+            HandleInputResult(status);
+            e.Handled = true;
+        }
+
+        private bool TryHandleVerseFontShortcut(KeyEventArgs e)
+        {
+            ModifierKeys modifiers = Keyboard.Modifiers;
+
+            bool controlHeld = (modifiers & ModifierKeys.Control) != 0;
+            bool shiftHeld = (modifiers & ModifierKeys.Shift) != 0;
+
+            if (!controlHeld)
+                return false;
+
+            // Ctrl+Shift+> / Ctrl+Shift+< on the main keyboard.
+            if (shiftHeld && e.Key == Key.OemPeriod)
+            {
+                ChangeVerseFontSize(VerseFontSizeStep);
+                return true;
+            }
+
+            if (shiftHeld && e.Key == Key.OemComma)
+            {
+                ChangeVerseFontSize(-VerseFontSizeStep);
+                return true;
+            }
+
+            // Also support Ctrl+Numpad+/- and Ctrl+=/- as convenient aliases.
+            switch (e.Key)
+            {
+                case Key.Add:
+                case Key.OemPlus:
+                    ChangeVerseFontSize(VerseFontSizeStep);
+                    return true;
+
+                case Key.Subtract:
+                case Key.OemMinus:
+                    ChangeVerseFontSize(-VerseFontSizeStep);
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        private void ChangeVerseFontSize(double adjustment)
+        {
+            verseFontSizeAdjustment = Math.Clamp(
+                verseFontSizeAdjustment + adjustment,
+                MinVerseFontSize - MaxVerseFontSize,
+                MaxManualVerseFontSize - MinVerseFontSize);
+
+            // Force a fresh fit calculation so the manual adjustment is
+            // immediately reflected, even when the window size is unchanged.
+            AdjustVerseFontSize(force: true);
+        }
+
+        // Processes a character originating from a clickable UI option.
+        // This deliberately uses the same parser as ordinary keyboard input.
+        private void ProcessInputCharacter(char character)
+        {
+            EntireCommandStatus status = inputHandler.ProcessCharacter(character);
+
+            HandleInputResult(status);
+        }
+
+
+        // Shared processing pipeline for keyboard and mouse input.
+        private void HandleInputResult(EntireCommandStatus status)
+        {
             if (status == EntireCommandStatus.Valid)
             {
                 Command? command = inputHandler.GetCommand();
+                string? submittedSearchPhrase =
+                    inputHandler.TakeSubmittedSearchPhrase();
 
                 if (command != null)
                 {
-                    // Linguist validates the command's grammar first. The
-                    // navigator then decides whether it is valid in context.
+                    // This interception happens only after Enter produced a
+                    // completed search command, and before BibleNavigator sees it.
+                    if (TryHandleAdminUnlock(command, submittedSearchPhrase))
+                        return;
+
                     navigator.ProcessCommand(command);
+
                     InterfaceUpdate(commandWasProcessedByNavigator: true);
+
                     UpdateVerseDisplay();
-                    e.Handled = true;
+
                     return;
                 }
             }
 
             InterfaceUpdate(commandWasProcessedByNavigator: false);
-            e.Handled = true;
+        }
+
+        private bool TryHandleAdminUnlock(
+            Command command,
+            string? submittedSearchPhrase)
+        {
+            // Quantity 0 / Query is the normal submitted-search command emitted
+            // by Linguist. Other Query commands (for example filter refreshes)
+            // must not be considered an unlock attempt.
+            if (command.Mode != State.Query || command.Quantity != 0 ||
+                !string.Equals(
+                    submittedSearchPhrase,
+                    "sudo -i",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            Verse currentVerse = navigator.CurrentVerse;
+            bool correctVerse =
+                currentVerse.BookId == 2 &&
+                currentVerse.Chapter == 28 &&
+                currentVerse.VerseNumber == 17;
+
+            bool correctTranslation = _database.TranslationNumber() == 2;
+
+            if (!correctVerse || !correctTranslation)
+                return false;
+
+            // Do not re-run the entrance animation for repeated valid submits
+            // during an already-active session, but still consume the command.
+            bool newlyActivated = adminSession.Activate();
+
+            // Restore the exact navigation mode remembered by Linguist when '/'
+            // opened search, clear partial search parser state and close its UI.
+            inputHandler.ExitSearchMode();
+            InterfaceUpdate(commandWasProcessedByNavigator: false);
+
+            if (newlyActivated)
+                ShowAdminTerminal();
+
+            return true;
         }
 
         private void GuidedModeBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -235,18 +473,267 @@ namespace navigationshurely
                 "B" => State.B,
                 "C" => State.C,
                 "V" => State.V,
+                "S" => State.S,
                 _ => null
             };
 
             if (target == null)
                 return;
 
-            inputHandler.SelectNavigationMode(target.Value);
+            // The semicolon label can be clicked while a command is being
+            // entered; re-selecting S should not clear that in-progress input.
+            // Keep the existing B/C/V click behavior unchanged.
+            if (target.Value != State.S || inputHandler.getState() != State.S)
+            {
+                inputHandler.SelectNavigationMode(target.Value);
 
-            // Refresh only the interface. No BibleNavigator command is needed.
-            InterfaceUpdate(commandWasProcessedByNavigator: false);
+                // Refresh only the interface. No BibleNavigator command is needed.
+                InterfaceUpdate(commandWasProcessedByNavigator: false);
+            }
 
             e.Handled = true;
+        }
+
+        private void GuidedLabel_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (layout != Layout.Guided ||
+                searchBorder.Visibility != Visibility.Visible ||
+                guidedLabelAnimationRunning)
+            {
+                return;
+            }
+
+            // A small upward nudge replays the same easing on hover without
+            // moving the label out of the screen or affecting parser work.
+            AnimateGuidedLabelEntrance(fromScreen: false);
+        }
+
+        private void AnimateGuidedLabelEntrance(bool fromScreen)
+        {
+            if (searchBorder.RenderTransform is not TranslateTransform transform)
+            {
+                transform = new TranslateTransform();
+                searchBorder.RenderTransform = transform;
+            }
+
+            int version = ++guidedLabelAnimationVersion;
+            guidedLabelAnimationRunning = true;
+
+            double startOffset = fromScreen
+                ? Math.Max(searchBorder.ActualHeight + 12.0, 44.0)
+                : 14.0;
+
+            transform.BeginAnimation(TranslateTransform.YProperty, null);
+            searchBorder.BeginAnimation(UIElement.OpacityProperty, null);
+
+            transform.Y = startOffset;
+            searchBorder.Opacity = 0.0;
+
+            TimeSpan middleTime = TimeSpan.FromMilliseconds(125);
+            TimeSpan endTime = TimeSpan.FromMilliseconds(250);
+
+            DoubleAnimationUsingKeyFrames slide = new();
+            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
+                startOffset,
+                KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
+                startOffset * 0.18,
+                KeyTime.FromTimeSpan(middleTime))
+            {
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseIn
+                }
+            });
+            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
+                0.0,
+                KeyTime.FromTimeSpan(endTime))
+            {
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
+            });
+
+            DoubleAnimationUsingKeyFrames fade = new();
+            fade.KeyFrames.Add(new EasingDoubleKeyFrame(
+                0.0,
+                KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            fade.KeyFrames.Add(new EasingDoubleKeyFrame(
+                1.0,
+                KeyTime.FromTimeSpan(endTime))
+            {
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
+            });
+
+            slide.Completed += (animationSender, animationArgs) =>
+            {
+                if (version != guidedLabelAnimationVersion)
+                    return;
+
+                transform.BeginAnimation(TranslateTransform.YProperty, null);
+                transform.Y = 0.0;
+                searchBorder.BeginAnimation(UIElement.OpacityProperty, null);
+                searchBorder.Opacity = 1.0;
+                guidedLabelAnimationRunning = false;
+            };
+
+            transform.BeginAnimation(
+                TranslateTransform.YProperty,
+                slide,
+                HandoffBehavior.SnapshotAndReplace);
+            searchBorder.BeginAnimation(
+                UIElement.OpacityProperty,
+                fade,
+                HandoffBehavior.SnapshotAndReplace);
+        }
+
+        private void ResetGuidedLabelAnimation()
+        {
+            // Invalidates any completion callback still queued by an old run.
+            guidedLabelAnimationVersion++;
+            guidedLabelAnimationRunning = false;
+
+            if (searchBorder.RenderTransform is TranslateTransform transform)
+            {
+                transform.BeginAnimation(TranslateTransform.YProperty, null);
+                transform.Y = 0.0;
+            }
+
+            searchBorder.BeginAnimation(UIElement.OpacityProperty, null);
+            searchBorder.Opacity = 1.0;
+        }
+
+        private void ShowAdminTerminal()
+        {
+            // Reset any interrupted run before measuring and showing the overlay.
+            ResetAdminTerminalAnimation();
+            adminTerminalBorder.Opacity = 0.0;
+            adminTerminalBorder.Visibility = Visibility.Visible;
+
+            // The height is needed to calculate the exact off-screen start offset.
+            UpdateLayout();
+            AnimateAdminTerminalEntrance();
+        }
+
+        private void AnimateAdminTerminalEntrance()
+        {
+            // Defensive cancellation if this entrance is ever requested while
+            // another terminal entrance is still running.
+            if (adminTerminalAnimationRunning)
+                ResetAdminTerminalAnimation();
+
+            int version = ++adminTerminalAnimationVersion;
+            adminTerminalAnimationRunning = true;
+
+            // The terminal enters from above; the guided label enters from below.
+            double startOffset =
+                -Math.Max(adminTerminalBorder.ActualHeight + 12.0, 44.0);
+
+            adminTerminalTransform.BeginAnimation(
+                TranslateTransform.YProperty,
+                null);
+            adminTerminalBorder.BeginAnimation(
+                UIElement.OpacityProperty,
+                null);
+
+            adminTerminalTransform.Y = startOffset;
+            adminTerminalBorder.Opacity = 0.0;
+
+            TimeSpan middleTime = TimeSpan.FromMilliseconds(125);
+            TimeSpan endTime = TimeSpan.FromMilliseconds(250);
+
+            DoubleAnimationUsingKeyFrames slide = new();
+            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
+                startOffset,
+                KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
+                startOffset * 0.18,
+                KeyTime.FromTimeSpan(middleTime))
+            {
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseIn
+                }
+            });
+            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
+                0.0,
+                KeyTime.FromTimeSpan(endTime))
+            {
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
+            });
+
+            DoubleAnimationUsingKeyFrames fade = new();
+            fade.KeyFrames.Add(new EasingDoubleKeyFrame(
+                0.0,
+                KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            fade.KeyFrames.Add(new EasingDoubleKeyFrame(
+                1.0,
+                KeyTime.FromTimeSpan(endTime))
+            {
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                }
+            });
+
+            slide.Completed += (animationSender, animationArgs) =>
+            {
+                // A deactivation or newer entrance invalidates stale callbacks.
+                if (version != adminTerminalAnimationVersion)
+                    return;
+
+                adminTerminalTransform.BeginAnimation(
+                    TranslateTransform.YProperty,
+                    null);
+                adminTerminalTransform.Y = 0.0;
+                adminTerminalBorder.BeginAnimation(
+                    UIElement.OpacityProperty,
+                    null);
+                adminTerminalBorder.Opacity = 1.0;
+                adminTerminalAnimationRunning = false;
+            };
+
+            adminTerminalTransform.BeginAnimation(
+                TranslateTransform.YProperty,
+                slide,
+                HandoffBehavior.SnapshotAndReplace);
+            adminTerminalBorder.BeginAnimation(
+                UIElement.OpacityProperty,
+                fade,
+                HandoffBehavior.SnapshotAndReplace);
+        }
+
+        private void ResetAdminTerminalAnimation()
+        {
+            // Invalidates any completion callback still queued by an old run.
+            adminTerminalAnimationVersion++;
+            adminTerminalAnimationRunning = false;
+
+            adminTerminalTransform.BeginAnimation(
+                TranslateTransform.YProperty,
+                null);
+            adminTerminalTransform.Y = 0.0;
+
+            adminTerminalBorder.BeginAnimation(
+                UIElement.OpacityProperty,
+                null);
+            adminTerminalBorder.Opacity = 1.0;
+        }
+
+        private void ExitAdminSession()
+        {
+            if (adminSession.IsActive)
+                adminSession.Deactivate();
+
+            ResetAdminTerminalAnimation();
+            adminTerminalBorder.Visibility = Visibility.Collapsed;
         }
 
         // =========================================================
@@ -336,6 +823,30 @@ namespace navigationshurely
         private void SetSearchUiRequestedVisibility(bool visible)
         {
             searchUiRequestedVisible = visible;
+
+            if (visible)
+            {
+                // A previous chapter/verse suggestion list (or an old search)
+                // must never masquerade as this session's search results.
+                inputHandler.SetSearchResultsAvailable(false);
+                rightList.SelectedItem = null;
+                rightList.ItemsSource = null;
+                rightList.ItemTemplate =
+                    (DataTemplate)FindResource("SearchVerseTemplate");
+                rightListBorder.BorderBrush = Brushes.Transparent;
+                bottomListBorder.BorderBrush = Brushes.Transparent;
+                frequencyBox.Text = string.Empty;
+            }
+            else
+            {
+                // Restore whichever right-hand list belonged to the mode
+                // that was active before search was opened.
+                if (marksVisible)
+                    ApplyMarksVisibility();
+                else
+                    UpdateAliasSuggestions();
+            }
+
             ApplySearchUiVisibility();
         }
 
@@ -359,13 +870,15 @@ namespace navigationshurely
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            bottomList.Visibility = visibility;
-            frequencyBox.Visibility = visibility;
+            ApplyBottomListVisibility();
 
-            refreshSearchBox.Visibility =
+            SetAnimatedVisibility(frequencyBox, visibility);
+
+            SetAnimatedVisibility(
+                refreshSearchBox,
                 globalUiVisible && searchUiRequestedVisible && enterVisible
                     ? Visibility.Visible
-                    : Visibility.Collapsed;
+                    : Visibility.Collapsed);
 
             if (searchUiRequestedVisible)
             {
@@ -377,12 +890,59 @@ namespace navigationshurely
                 hintBoxOne.Text = "[space];f for help";
                 hintBoxTwo.Text = "[space];e to toggle UI";
             }
+
             ApplyRightListVisibility();
+        }
+
+        private void ApplyBottomListVisibility()
+        {
+            List<string> activeFilters = searchUiRequestedVisible
+                ? navigator.GetActiveSearchFilters()
+                : new List<string>();
+
+            bool showSearchFilters =
+                globalUiVisible &&
+                searchUiRequestedVisible &&
+                activeFilters.Count > 0;
+
+            bool showMovementEnders =
+                globalUiVisible &&
+                optionsVisible &&
+                !searchUiRequestedVisible &&
+                IsChapterOrVerseMode();
+
+            if (showMovementEnders)
+            {
+                bottomList.ItemTemplate =
+                    (DataTemplate)FindResource("MovementEnderTemplate");
+                bottomList.ItemsSource = movementEnderOptions;
+            }
+            else if (showSearchFilters)
+            {
+                bottomList.ItemTemplate =
+                    (DataTemplate)FindResource("BottomListTextTemplate");
+                bottomList.ItemsSource = activeFilters;
+            }
+            else
+            {
+                // Do not leave movement-enders or filters in an inactive view.
+                bottomList.SelectedItem = null;
+                bottomList.ItemsSource = null;
+            }
+
+            Visibility visibility =
+                showSearchFilters || showMovementEnders
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+            // Animate the container too: otherwise its BorderBrush can remain
+            // visible as a small empty outline after the ListView collapses.
+            SetAnimatedVisibility(bottomListBorder, visibility);
+            SetAnimatedVisibility(bottomList, visibility);
         }
 
         private void ApplyMarksVisibility()
         {
-
             if (marksVisible)
             {
                 rightList.ItemTemplate =
@@ -397,56 +957,164 @@ namespace navigationshurely
                     })
                     .ToList();
             }
-            else
+
+            // Clearing is handled by ApplyRightListVisibility after the fade-out.
+            ApplyRightListVisibility();
+        }
+
+        private void ClearRightListIfUnused()
+        {
+            // Search results and marked verses must never be cleared here.
+            if (marksVisible || searchUiRequestedVisible)
+                return;
+
+            // Navigation suggestions are only in use while their option is enabled.
+            if (optionsVisible &&
+                (IsChapterOrVerseMode() ||
+                 inputHandler.BookAliasSuggestionPrefix() != null ||
+                 inputHandler.AliasSuggestionPrefix() != null))
             {
-                rightList.SelectedItem = null;
-                rightList.ItemsSource = null;
+                return;
             }
 
-            ApplyRightListVisibility();
+            rightList.SelectedItem = null;
+            rightList.ItemsSource = null;
         }
 
         private void UpdateAliasSuggestions()
         {
             // Don't interfere with other uses of the right-hand list.
             // Also avoid generating suggestions when the entire UI is hidden.
-            if (!globalUiVisible || marksVisible || searchUiRequestedVisible)
+            if (!globalUiVisible || !optionsVisible || marksVisible || searchUiRequestedVisible)
                 return;
 
-            string? prefix = inputHandler.AliasSuggestionPrefix();
 
-            // No valid alias is currently being typed.
-            if (prefix == null)
+            // =========================================================
+            // BOOK MODE SUGGESTIONS
+            // =========================================================
+
+            string? bookPrefix = inputHandler.BookAliasSuggestionPrefix();
+
+            if (bookPrefix != null)
             {
-                rightList.SelectedItem = null;
-                rightList.ItemsSource = null;
+                rightList.ItemTemplate =
+                    (DataTemplate)FindResource("BookAliasSuggestionTemplate");
+
+                rightList.ItemsSource =
+                    inputHandler.GetBookAliasSuggestions(bookPrefix)
+                        .Select(pair => new BookAliasSuggestionItem
+                        {
+                            Alias = pair.Key,
+
+                            BookId = pair.Value,
+
+                            BookTitle = new Verse
+                            {
+                                BookId = pair.Value
+                            }.Title()
+                        })
+                        .ToList();
+
                 return;
             }
 
-            // Display the alias suggestion template.
+            // =========================================================
+            // CHAPTER / VERSE MOVEMENT OPTIONS
+            // =========================================================
+
+            if (IsChapterOrVerseMode())
+            {
+                rightList.ItemTemplate =
+                    (DataTemplate)FindResource("MovementQuantifierTemplate");
+
+                rightList.ItemsSource =
+                    inputHandler.GetMovementQuantifierOptions()
+                        .Select(pair => new MovementQuantifierOptionItem
+                        {
+                            Character = pair.Key,
+
+                            Shortcut = pair.Key.ToString(),
+
+                            QuantityText = pair.Value >= 10
+                                ? $" - {pair.Value} (fast)"
+                                : $" - {pair.Value}"
+                        })
+                        .ToList();
+
+                return;
+            }
+
+
+            // =========================================================
+            // SEMICOLON MODE SUGGESTIONS
+            // =========================================================
+
+            string? prefix = inputHandler.AliasSuggestionPrefix();
+
+            if (prefix == null)
+                return;
+
             rightList.ItemTemplate =
                 (DataTemplate)FindResource("AliasSuggestionTemplate");
 
-            // Retrieve only suggestions matching the user's prefix.
             rightList.ItemsSource =
                 navigator.GetAliasSuggestions(prefix);
         }
 
         private void ApplyRightListVisibility()
         {
-            bool shouldBeVisible =
-                globalUiVisible &&
+            bool showSearchResults =
+                searchUiRequestedVisible &&
+                inputHandler.getState() == State.Choice &&
+                inputHandler.SearchResultsAvailable &&
+                rightList.Items.Count > 0;
+
+            bool showNavigationOptions =
+                optionsVisible &&
                 (
-                    searchUiRequestedVisible ||
-                    marksVisible ||
+                    IsChapterOrVerseMode() ||
+                    inputHandler.BookAliasSuggestionPrefix() != null ||
                     inputHandler.AliasSuggestionPrefix() != null
                 );
 
-            rightList.Visibility = shouldBeVisible
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            bool shouldBeVisible =
+                globalUiVisible &&
+                (
+                    showSearchResults ||
+                    (!searchUiRequestedVisible && marksVisible) ||
+                    showNavigationOptions
+                );
+
+            if (shouldBeVisible)
+            {
+                SetAnimatedVisibility(
+                    rightListBorder,
+                    Visibility.Visible);
+
+                return;
+            }
+
+            bool alreadyHidden =
+                rightListBorder.Visibility != Visibility.Visible;
+
+            SetAnimatedVisibility(
+                rightListBorder,
+                Visibility.Collapsed,
+                ClearRightListIfUnused);
+
+            // If the list was already hidden, there won't be another
+            // animation completion to invoke the clearing callback.
+            if (alreadyHidden)
+                ClearRightListIfUnused();
         }
 
+        private bool IsChapterOrVerseMode()
+        {
+            State currentState = inputHandler.getState();
+
+            return currentState == State.C ||
+                   currentState == State.V;
+        }
 
         // =========================================================
         // COMMAND-STATE PRESENTATION
@@ -462,6 +1130,8 @@ namespace navigationshurely
             UpdateAliasSuggestions();
 
             ApplyRightListVisibility();
+
+            ApplyBottomListVisibility();
         }
 
         private void UpdateClassicInterface(bool commandWasProcessedByNavigator)
@@ -486,11 +1156,18 @@ namespace navigationshurely
             switch (currentState)
             {
                 case State.Filter:
-                    bottomListBorder.BorderBrush = activeBorderBrush;
+                    if (bottomList.Items.Count > 0)
+                    {
+                        bottomListBorder.BorderBrush = activeBorderBrush;
+                    }
                     break;
 
                 case State.Choice:
-                    rightListBorder.BorderBrush = activeBorderBrush;
+                    if (inputHandler.SearchResultsAvailable &&
+                        rightList.Items.Count > 0)
+                    {
+                        rightListBorder.BorderBrush = activeBorderBrush;
+                    }
                     break;
 
                 case State.Query:
@@ -517,8 +1194,8 @@ namespace navigationshurely
                     SetGuidedModeAppearance(
                         State.B,
                         GetCommandBrush(commandWasProcessedByNavigator, classic: false));
-                    guidedLabel.Visibility = Visibility.Collapsed;
-                    searchBorder.Visibility = Visibility.Collapsed;
+                    ResetGuidedLabelAnimation();
+                    SetAnimatedVisibility(searchBorder, Visibility.Collapsed);
                     break;
 
                 case State.C:
@@ -530,8 +1207,8 @@ namespace navigationshurely
                     SetGuidedModeAppearance(
                         State.C,
                         GetCommandBrush(commandWasProcessedByNavigator, classic: false));
-                    guidedLabel.Visibility = Visibility.Collapsed;
-                    searchBorder.Visibility = Visibility.Collapsed;
+                    ResetGuidedLabelAnimation();
+                    SetAnimatedVisibility(searchBorder, Visibility.Collapsed);
                     break;
 
                 case State.V:
@@ -543,8 +1220,8 @@ namespace navigationshurely
                     SetGuidedModeAppearance(
                         State.V,
                         GetCommandBrush(commandWasProcessedByNavigator, classic: false));
-                    guidedLabel.Visibility = Visibility.Collapsed;
-                    searchBorder.Visibility = Visibility.Collapsed;
+                    ResetGuidedLabelAnimation();
+                    SetAnimatedVisibility(searchBorder, Visibility.Collapsed);
                     break;
 
                 case State.S:
@@ -599,8 +1276,20 @@ namespace navigationshurely
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            guidedLabel.Visibility = visibility;
-            searchBorder.Visibility = visibility;
+            bool wasVisible = searchBorder.Visibility == Visibility.Visible;
+            guidedLabel.Visibility = Visibility.Visible;
+            SetAnimatedVisibility(searchBorder, visibility);
+
+            if (visibility == Visibility.Visible && !wasVisible)
+            {
+                // The label is anchored at the bottom of the HUD. A short
+                // translate/fade brings it up into view only on first entry.
+                AnimateGuidedLabelEntrance(fromScreen: true);
+            }
+            else if (visibility != Visibility.Visible)
+            {
+                ResetGuidedLabelAnimation();
+            }
 
             bsBox.Text = string.Empty;
             csBox.Text = string.Empty;
@@ -626,11 +1315,18 @@ namespace navigationshurely
             switch (currentState)
             {
                 case State.Filter:
-                    bottomListBorder.BorderBrush = activeBorderBrush;
+                    if (bottomList.Items.Count > 0)
+                    {
+                        bottomListBorder.BorderBrush = activeBorderBrush;
+                    }
                     break;
 
                 case State.Choice:
-                    rightListBorder.BorderBrush = activeBorderBrush;
+                    if (inputHandler.SearchResultsAvailable &&
+                        rightList.Items.Count > 0)
+                    {
+                        rightListBorder.BorderBrush = activeBorderBrush;
+                    }
                     break;
 
                 default:
@@ -834,7 +1530,10 @@ namespace navigationshurely
                     high = middle;
             }
 
-            verseBox.FontSize = low;
+            verseBox.FontSize = Math.Clamp(
+                low + verseFontSizeAdjustment,
+                MinVerseFontSize,
+                MaxManualVerseFontSize);
             lastMeasuredVerseWidth = availableWidth;
             lastMeasuredVerseHeight = availableHeight;
         }
@@ -847,9 +1546,11 @@ namespace navigationshurely
         {
             List<Verse> searchResults = navigator.LocatedVerses();
 
+            rightList.SelectedItem = null;
             rightList.ItemTemplate =
                 (DataTemplate)FindResource("SearchVerseTemplate");
             rightList.ItemsSource = searchResults;
+            inputHandler.SetSearchResultsAvailable(searchResults.Count > 0);
 
             int frequency = searchResults.Count;
             string query = navigator.ActualSearchQuery();
@@ -870,7 +1571,11 @@ namespace navigationshurely
 
         private void DisplayFilters()
         {
-            bottomList.ItemsSource = navigator.GetActiveSearchFilters();
+            bottomList.ItemTemplate =
+                (DataTemplate)FindResource("BottomListTextTemplate");
+
+            bottomList.ItemsSource =
+                navigator.GetActiveSearchFilters();
         }
 
         private void ScrollRightList()
@@ -903,6 +1608,35 @@ namespace navigationshurely
                 UpdateVerseDisplay();
             }
 
+            // BOOK ALIAS SUGGESTION CLICK
+            else if (item is BookAliasSuggestionItem clickedBookAlias)
+            {
+                // Clear the unfinished book alias from the input parser.
+                inputHandler.BookAliasSuggestionSelected();
+
+                // Execute the same navigation command as a completed book alias.
+                navigator.ProcessCommand(new Command
+                {
+                    Mode = State.B,
+                    Quantity = clickedBookAlias.BookId,
+                    Direction = Direct.Absolute
+                });
+
+                // Update the displayed verse.
+                UpdateVerseDisplay();
+
+                // Refresh the interface and remove the suggestions.
+                InterfaceUpdate(commandWasProcessedByNavigator: false);
+            }
+
+            // CHAPTER / VERSE QUANTIFIER CLICK
+            else if (item is MovementQuantifierOptionItem clickedQuantifier)
+            {
+                ProcessInputCharacter(clickedQuantifier.Character);
+
+                e.Handled = true;
+            }
+
             // ALIAS SUGGESTION CLICK
             else if (item is AliasSuggestion clickedAlias)
             {
@@ -920,6 +1654,72 @@ namespace navigationshurely
 
                 // Refresh the interface and remove the alias suggestions.
                 InterfaceUpdate(commandWasProcessedByNavigator: false);
+            }
+        }
+
+        private void titleBox_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            ToggleOptions();
+
+            // A mouse click bypasses the normal keyboard update cycle.
+            // Keep search and marked-verse views completely untouched.
+            if (!searchUiRequestedVisible && !marksVisible)
+            {
+                // Only generate suggestions when turning the hints back on.
+                if (optionsVisible)
+                    UpdateAliasSuggestions();
+
+                ApplyRightListVisibility();
+                ApplyBottomListVisibility();
+            }
+
+            e.Handled = true;
+        }
+
+        private void translationBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            navigator.ProcessCommand(new Command
+            {
+                Mode = State.S,
+                Quantity = 300,
+                Direction = Direct.Absolute
+            });
+            e.Handled = true;
+        }
+
+        private void verseBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            ChangeVerseFontSize(-VerseFontSizeStep);
+            e.Handled = true;
+        }
+
+        private void verseBox_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            ChangeVerseFontSize(VerseFontSizeStep);
+            e.Handled = true;
+        }
+
+        private void bottomList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            DependencyObject? clickedElement =
+                e.OriginalSource as DependencyObject;
+
+            ListViewItem? clickedItem =
+                FindParent<ListViewItem>(clickedElement);
+
+            if (clickedItem == null)
+                return;
+
+            object item = bottomList.ItemContainerGenerator
+                .ItemFromContainer(clickedItem);
+
+
+            // CHAPTER / VERSE COMMAND ENDER CLICK
+            if (item is MovementEnderOptionItem clickedEnder)
+            {
+                ProcessInputCharacter(clickedEnder.Character);
+
+                e.Handled = true;
             }
         }
 
@@ -963,8 +1763,53 @@ namespace navigationshurely
 
         private void OpenHelpWindow()
         {
-            HelpWindow helpWindow = new HelpWindow();
-            helpWindow.ShowDialog();
+            HelpLoadingSplash loadingSplash = new HelpLoadingSplash();
+            bool splashClosed = false;
+
+            // Close it exactly once. This method is called both when the
+            // HelpWindow first renders and as a safety net in finally.
+            void CloseLoadingSplash()
+            {
+                if (splashClosed)
+                    return;
+
+                splashClosed = true;
+                loadingSplash.Close();
+            }
+
+            try
+            {
+                // The splash has its own STA thread, so its animation keeps
+                // running while the main UI thread constructs the help UI.
+                loadingSplash.Show();
+
+                // Keep creating WPF controls on the main window's UI thread.
+                HelpWindow helpWindow = new HelpWindow
+                {
+                    Owner = this
+                };
+
+                // InitializeComponent() only constructs the XAML tree. WPF
+                // still has to measure, arrange and render the window after
+                // ShowDialog(). ContentRendered marks that first real render.
+                helpWindow.ContentRendered += (_, _) => CloseLoadingSplash();
+
+                helpWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    this,
+                    "The help manual could not be opened.\n\n" + ex.Message,
+                    "Help window error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                // Also close the splash if construction/rendering failed.
+                CloseLoadingSplash();
+            }
         }
 
         private void CopyVerse()
@@ -982,9 +1827,429 @@ namespace navigationshurely
             Clipboard.SetText(titleBox.Text + "\n" + verseBox.Text);
         }
 
+        private sealed class HelpLoadingSplash
+        {
+            private readonly ManualResetEventSlim _ready = new(false);
+
+            private Dispatcher? _dispatcher;
+            private Window? _window;
+            private Exception? _startupException;
+
+            public void Show()
+            {
+                Thread splashThread = new Thread(() =>
+                {
+                    try
+                    {
+                        // Every WPF UI thread needs its own Dispatcher.
+                        Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
+
+                        _dispatcher = dispatcher;
+
+                        Window splash = CreateWindow();
+
+                        _window = splash;
+
+                        // Automatically shut down this thread when the
+                        // loading window closes.
+                        splash.Closed += (_, _) =>
+                        {
+                            if (!dispatcher.HasShutdownStarted &&
+                                !dispatcher.HasShutdownFinished)
+                            {
+                                dispatcher.BeginInvokeShutdown(
+                                    DispatcherPriority.Background);
+                            }
+                        };
+
+                        splash.Show();
+
+                        // Signal readiness after the dispatcher has had
+                        // an opportunity to process the initial rendering.
+                        dispatcher.BeginInvoke(
+                            DispatcherPriority.ApplicationIdle,
+                            new Action(_ready.Set));
+
+                        // Keep the splash window's animation running.
+                        Dispatcher.Run();
+                    }
+                    catch (Exception ex)
+                    {
+                        _startupException = ex;
+                        _ready.Set();
+                    }
+                });
+
+                // WPF requires an STA thread.
+                splashThread.SetApartmentState(ApartmentState.STA);
+
+                splashThread.IsBackground = true;
+
+                splashThread.Start();
+
+                // Wait only until the loading window is ready,
+                // NOT until the HelpWindow has finished loading.
+                _ready.Wait();
+
+                if (_startupException != null)
+                {
+                    throw new InvalidOperationException(
+                        "Could not start the help loading screen.",
+                        _startupException);
+                }
+            }
+
+
+            public void Close()
+            {
+                Dispatcher? dispatcher = _dispatcher;
+
+                if (dispatcher == null ||
+                    dispatcher.HasShutdownStarted ||
+                    dispatcher.HasShutdownFinished)
+                {
+                    return;
+                }
+
+                // Close the window on its own UI thread.
+                dispatcher.Invoke(() =>
+                {
+                    if (_window?.IsVisible == true)
+                        _window.Close();
+                });
+            }
+
+            private static Window CreateWindow()
+            {
+                // =====================================================
+                // HEADING
+                // =====================================================
+
+                TextBlock heading = new TextBlock
+                {
+                    Text = "OPENING HELP MANUAL",
+
+                    Foreground = Brushes.White,
+
+                    FontFamily = new FontFamily("Consolas"),
+
+                    FontSize = 21,
+
+                    FontWeight = FontWeights.Bold,
+
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+
+                // =====================================================
+                // MAIN MESSAGE
+                // =====================================================
+
+                TextBlock message = new TextBlock
+                {
+                    Text = "Preparing your navigation reference.",
+
+                    Foreground = new SolidColorBrush(
+                        Color.FromRgb(190, 200, 215)),
+
+                    FontFamily = new FontFamily("Consolas"),
+
+                    FontSize = 13,
+
+                    Margin = new Thickness(0, 10, 0, 0),
+
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+
+                // =====================================================
+                // ANIMATED PROGRESS BAR
+                // =====================================================
+
+                ProgressBar progress = new ProgressBar
+                {
+                    IsIndeterminate = true,
+
+                    Height = 8,
+
+                    Margin = new Thickness(0, 24, 0, 14),
+
+                    Foreground = new SolidColorBrush(
+                        Color.FromRgb(255, 213, 79)),
+
+                    Background = new SolidColorBrush(
+                        Color.FromRgb(55, 63, 75)),
+
+                    BorderThickness = new Thickness(0)
+                };
+
+
+                // =====================================================
+                // FOOTER
+                // =====================================================
+
+                TextBlock footer = new TextBlock
+                {
+                    Text = "The manual is quite large. Please bear with us.",
+
+                    Foreground = new SolidColorBrush(
+                        Color.FromRgb(125, 140, 160)),
+
+                    FontFamily = new FontFamily("Consolas"),
+
+                    FontSize = 11,
+
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+
+
+                // =====================================================
+                // CONTENT LAYOUT
+                // =====================================================
+
+                StackPanel content = new StackPanel
+                {
+                    VerticalAlignment = VerticalAlignment.Center,
+
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+
+                content.Children.Add(heading);
+                content.Children.Add(message);
+                content.Children.Add(progress);
+                content.Children.Add(footer);
+
+
+                Border panel = new Border
+                {
+                    Background = new SolidColorBrush(
+                        Color.FromRgb(18, 24, 34)),
+
+                    BorderBrush = new SolidColorBrush(
+                        Color.FromRgb(75, 88, 108)),
+
+                    BorderThickness = new Thickness(1),
+
+                    CornerRadius = new CornerRadius(12),
+
+                    Padding = new Thickness(32),
+
+                    Child = content
+                };
+
+
+                // =====================================================
+                // LOADING WINDOW
+                // =====================================================
+
+                return new Window
+                {
+                    Title = "Opening Help",
+
+                    Width = 480,
+
+                    Height = 210,
+
+                    WindowStyle = WindowStyle.None,
+
+                    ResizeMode = ResizeMode.NoResize,
+
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+
+                    ShowInTaskbar = false,
+
+                    ShowActivated = true,
+
+                    Topmost = true,
+
+                    Background = new SolidColorBrush(
+                        Color.FromRgb(18, 24, 34)),
+
+                    Content = panel
+                };
+            }
+        }
+
+
         // =========================================================
         // WPF RESOURCE HELPERS
         // =========================================================
+
+        private void SetAnimatedVisibility(UIElement element, Visibility targetVisibility, Action? afterHidden = null)
+        {
+            // Avoid repeatedly restarting an animation when the requested
+            // visibility has not changed.
+            if (visibilityAnimationTargets.TryGetValue(
+                    element,
+                    out Visibility previousTarget) &&
+                previousTarget == targetVisibility)
+            {
+                return;
+            }
+
+            visibilityAnimationTargets[element] = targetVisibility;
+
+            // Give every new transition its own generation number.
+            int version = visibilityAnimationVersions.TryGetValue(
+                element,
+                out int previousVersion)
+                    ? previousVersion + 1
+                    : 1;
+
+            visibilityAnimationVersions[element] = version;
+
+            bool wasVisible = element.Visibility == Visibility.Visible;
+            double currentOpacity = element.Opacity;
+
+            // Stop any animation currently running on this element.
+            element.BeginAnimation(UIElement.OpacityProperty, null);
+
+
+            // =========================================================
+            // FADE IN
+            // =========================================================
+
+            if (targetVisibility == Visibility.Visible)
+            {
+                element.Visibility = Visibility.Visible;
+
+                if (ReferenceEquals(element, searchBorder) &&
+    searchBorder.RenderTransform is TranslateTransform otherSlide)
+                {
+                    otherSlide.BeginAnimation(
+                        TranslateTransform.YProperty,
+                        new DoubleAnimation
+                        {
+                            To = 0,
+                            Duration = TimeSpan.FromMilliseconds(160),
+                            EasingFunction = new QuadraticEase
+                            {
+                                EasingMode = EasingMode.EaseOut
+                            }
+                        });
+                }
+                double fromOpacity = wasVisible
+                    ? currentOpacity
+                    : 0.0;
+
+                element.Opacity = fromOpacity;
+
+                if (fromOpacity >= 0.999)
+                {
+                    element.Opacity = 1.0;
+                    return;
+                }
+
+                DoubleAnimation fadeIn = new DoubleAnimation
+                {
+                    From = fromOpacity,
+                    To = 1.0,
+                    Duration = new Duration(
+                        TimeSpan.FromMilliseconds(160)),
+
+                    EasingFunction = new QuadraticEase
+                    {
+                        EasingMode = EasingMode.EaseOut
+                    }
+                };
+
+                fadeIn.Completed += (sender, args) =>
+                {
+                    if (!visibilityAnimationVersions.TryGetValue(
+                            element,
+                            out int activeVersion) ||
+                        activeVersion != version)
+                    {
+                        return;
+                    }
+
+                    element.BeginAnimation(UIElement.OpacityProperty, null);
+                    element.Opacity = 1.0;
+                };
+
+                element.BeginAnimation(
+                    UIElement.OpacityProperty,
+                    fadeIn,
+                    HandoffBehavior.SnapshotAndReplace);
+
+                return;
+            }
+
+
+            // =========================================================
+            // IMMEDIATE HIDE IF ALREADY INVISIBLE
+            // =========================================================
+
+            if (!wasVisible)
+            {
+                element.Opacity = 1.0;
+                element.Visibility = targetVisibility;
+
+                afterHidden?.Invoke();
+                return;
+            }
+
+
+            // =========================================================
+            // FADE OUT
+            // =========================================================
+
+            element.Opacity = currentOpacity;
+
+            if (ReferenceEquals(element, searchBorder) &&
+    searchBorder.RenderTransform is TranslateTransform slide)
+            {
+                slide.BeginAnimation(
+                    TranslateTransform.YProperty,
+                    new DoubleAnimation
+                    {
+                        To = 14,
+                        Duration = TimeSpan.FromMilliseconds(130),
+                        EasingFunction = new QuadraticEase
+                        {
+                            EasingMode = EasingMode.EaseIn
+                        }
+                    });
+            }
+
+            DoubleAnimation fadeOut = new DoubleAnimation
+            {
+                From = currentOpacity,
+                To = 0.0,
+                Duration = new Duration(
+                    TimeSpan.FromMilliseconds(130)),
+
+                EasingFunction = new QuadraticEase
+                {
+                    EasingMode = EasingMode.EaseIn
+                }
+            };
+
+            fadeOut.Completed += (sender, args) =>
+            {
+                // Ignore an outdated animation if the visibility has changed.
+                if (!visibilityAnimationVersions.TryGetValue(
+                        element,
+                        out int activeVersion) ||
+                    activeVersion != version)
+                {
+                    return;
+                }
+
+                element.BeginAnimation(UIElement.OpacityProperty, null);
+
+                element.Opacity = 1.0;
+                element.Visibility = targetVisibility;
+
+
+                afterHidden?.Invoke();
+            };
+
+            element.BeginAnimation(
+                UIElement.OpacityProperty,
+                fadeOut,
+                HandoffBehavior.SnapshotAndReplace);
+        }
 
         private static Brush CreateFrozenBrush(Color color)
         {
@@ -992,5 +2257,7 @@ namespace navigationshurely
             brush.Freeze();
             return brush;
         }
+
+
     }
 }
