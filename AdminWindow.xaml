@@ -1,0 +1,57 @@
+﻿<Window x:Class="navigationshurely.AdminWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:navigationshurely"
+        mc:Ignorable="d"
+        Title="AdminWindow" Height="450" Width="800"
+        ResizeMode="NoResize"
+        SnapsToDevicePixels="true"
+        WindowStyle="None"
+        Background="Transparent"
+        AllowsTransparency="True"
+        
+        x:Name="AdminScreen"
+        
+        Loaded="AdminScreen_Loaded"
+        ShowInTaskbar="false">
+
+    <Border x:Name="AdminSession"
+            CornerRadius="15, 0, 0, 15"
+            RenderTransformOrigin="1,1"
+            BorderThickness="4"
+            BorderBrush="#6b6b6a"
+            Background="#2e2e2e">
+        <Border.RenderTransform>
+            <ScaleTransform x:Name="PopupScale" ScaleX="0" ScaleY="0" />
+        </Border.RenderTransform>
+
+        <Grid>
+            <TextBox x:Name="AdminInputDisplay"
+             IsReadOnly="True"
+             IsReadOnlyCaretVisible="True"
+             Focusable="True"
+             FocusVisualStyle="{x:Null}"
+             BorderThickness="0"
+             Background="Transparent"
+             Padding="30"
+             Margin="0"
+             Foreground="White"
+             CaretBrush="White"
+             HorizontalAlignment="left"
+             VerticalAlignment="Top"
+             FontFamily="Consolas"
+             FontSize="20"
+                     Visibility="visible"
+             TextWrapping="NoWrap"
+             HorizontalScrollBarVisibility="Hidden"
+             VerticalScrollBarVisibility="Hidden"
+             VerticalContentAlignment="Center"
+             PreviewKeyDown="AdminInputDisplay_PreviewKeyDown"
+             PreviewTextInput="AdminInputDisplay_PreviewTextInput"/>
+        </Grid>
+
+    </Border>
+
+</Window>

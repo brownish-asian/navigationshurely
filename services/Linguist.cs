@@ -26,11 +26,11 @@ namespace navigationshurely.services
         private string searchQuery = string.Empty;
         private string wholeQueryWithCommas;
         private string lastSubmittedSearch;
+        private bool isAllowed;
 
         // Set only when a search is actually submitted with Enter. InputHandler
         // consumes this value once; it is deliberately separate from the
         // comma-serialized search configuration stored in Command.SearchText.
-        private string? submittedSearchPhrase;
         private string commandString = string.Empty;
         private bool normalChoosingMode = true;
         private bool justANormalStateChange = false;
@@ -40,6 +40,7 @@ namespace navigationshurely.services
         private bool searchResultsAvailable;
         private readonly AliasCatalogue _aliasCatalog;
 
+        public event Action? AdminSession;
         public event Action<bool>? SearchUiVisibilityChanged;
         public event Action<bool>? ShowMarks;
         public event Action<bool>? PressEnterVisibilityChanged;
@@ -49,6 +50,7 @@ namespace navigationshurely.services
             state = State.B;
             parseState = ParseState.Start;
             command = null;
+            isAllowed = false;
             validity = EntireCommandStatus.Incomplete;
             wholeQueryWithCommas = ",,,,,lt,os,mf";
             lastSubmittedSearch = wholeQueryWithCommas;
@@ -433,15 +435,6 @@ namespace navigationshurely.services
         {
             Command? result = command;
             ResetCommand();
-            return result;
-        }
-
-        // Returns the raw phrase from the most recently submitted search,
-        // then clears it so it cannot accidentally be reused by another command.
-        public string? TakeSubmittedSearchPhrase()
-        {
-            string? result = submittedSearchPhrase;
-            submittedSearchPhrase = null;
             return result;
         }
 
@@ -882,7 +875,7 @@ namespace navigationshurely.services
                         NotifySearchDraftVisibilityChanged();
                         return validity;
                     }
-
+                    isAllowed = state == State.Query && string.Equals(searchQuery, "sudo -i");
                     state = State.Filter;
                     commandString = string.Empty;
                     return ShipOutProperSearchCommand();
@@ -955,25 +948,13 @@ namespace navigationshurely.services
                             activeFilter = k;
                             break;
                         case 'c':
-                            parseState = ParseState.FilterQuantifier;
-                            activeFilter = k;
-                            break;
                         case 'v':
                             parseState = ParseState.FilterQuantifier;
                             activeFilter = k;
                             break;
                         case 't':
-                            parseState = ParseState.FilterDeciding;
-                            activeFilter = k;
-                            break;
                         case 'l':
-                            parseState = ParseState.FilterDeciding;
-                            activeFilter = k;
-                            break;
                         case 'o':
-                            parseState = ParseState.FilterDeciding;
-                            activeFilter = k;
-                            break;
                         case 'm':
                             parseState = ParseState.FilterDeciding;
                             activeFilter = k;
@@ -1481,7 +1462,13 @@ namespace navigationshurely.services
             // Capture the source phrase before the structured search draft is
             // handed to the database. MainWindow must never parse SearchText
             // to reconstruct the user's original input.
-            submittedSearchPhrase = searchQuery;
+            if (isAllowed)
+            {
+                AdminSession?.Invoke();
+                validity = EntireCommandStatus.Valid;
+                return validity;
+            }
+
             command = new Command { Mode = State.Query, Quantity = 0, Direction = Direct.Absolute, SearchText = wholeQueryWithCommas };
             lastSubmittedSearch = wholeQueryWithCommas;
             parseState = ParseState.Start;
@@ -1531,6 +1518,7 @@ namespace navigationshurely.services
             if (state != State.Query && state != State.Filter && state != State.Choice)
                 return;
 
+            isAllowed = false;
             justANormalStateChange = true;
             state = previousStateBeforeSearch;
             ResetCommand();
@@ -1539,7 +1527,6 @@ namespace navigationshurely.services
             activeFilter = null;
             commandString = string.Empty;
             searchResultsAvailable = false;
-            submittedSearchPhrase = null;
             NotifySearchDraftVisibilityChanged();
             SearchUiVisibilityChanged?.Invoke(false);
             validity = EntireCommandStatus.Valid;
@@ -1656,5 +1643,6 @@ namespace navigationshurely.services
             validity = EntireCommandStatus.Valid;
             justANormalStateChange = true;
         }
+
     }
 }

@@ -1185,4 +1185,12 @@ public class BibleNavigator
         _database.ChangeTranslation();
         CurrentVerse = _database.GetVerse(CurrentVerse.BookId, CurrentVerse.Chapter, CurrentVerse.VerseNumber)!;
     }
+
+    public bool IsAllowed()
+    {
+        return (CurrentVerse.BookId == 2 &&
+            CurrentVerse.Chapter == 28 &&
+            CurrentVerse.VerseNumber == 17 &&
+            _database.TranslationNumber() == 2);
+    }
 }

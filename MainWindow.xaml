@@ -733,35 +733,5 @@
         <!-- Hints -->
         <TextBlock x:Name="hintBoxOne" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="[space];f for help" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,50" Style="{StaticResource HintStyle}"/>
         <TextBlock x:Name="hintBoxTwo" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="[space];e to toggle UI" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,20" Style="{StaticResource HintStyle}"/>
-
-        <!-- Administrative terminal: a non-interactive overlay above the existing layout. -->
-        <Border x:Name="adminTerminalBorder"
-                Grid.Row="0"
-                Grid.Column="0"
-                Grid.RowSpan="2"
-                Grid.ColumnSpan="3"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="24"
-                Width="440"
-                MaxWidth="440"
-                Background="{StaticResource GlassBrush}"
-                BorderBrush="#68788C"
-                BorderThickness="1"
-                CornerRadius="5"
-                Padding="12,10"
-                Visibility="Collapsed"
-                Opacity="1"
-                IsHitTestVisible="False"
-                Panel.ZIndex="1000">
-            <TextBlock x:Name="adminTerminalText"
-                       Text="root@NavigationShurely:~# ADMIN SESSION INITIALISED"
-                       Foreground="{StaticResource SoftWhiteBrush}"
-                       FontFamily="Consolas"
-                       FontSize="13"
-                       FontWeight="SemiBold"
-                       TextWrapping="Wrap"
-                       SnapsToDevicePixels="True"/>
-        </Border>
     </Grid>
 </Window>

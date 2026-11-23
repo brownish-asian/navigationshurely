@@ -64,10 +64,6 @@ namespace navigationshurely
         private readonly BibleNavigator navigator;
         private readonly AliasCatalogue _aliasCatalog = new();
 
-        // Admin mode is application-level state, separate from the navigation grammar.
-        private readonly AdminSession adminSession = new();
-        private readonly TranslateTransform adminTerminalTransform = new();
-
         // =========================================================
         // CHAPTER / VERSE COMMAND OPTIONS
         // =========================================================
@@ -102,6 +98,7 @@ namespace navigationshurely
 
         private bool globalUiVisible = true;
         private bool searchUiRequestedVisible;
+
         // Navigation hints are enabled by default to preserve the existing startup behaviour.
         // Search results, search filters and marked verses do not depend on this setting.
         private bool optionsVisible;
@@ -151,11 +148,6 @@ namespace navigationshurely
         {
             InitializeComponent();
 
-            // The terminal owns its transform and starts hidden on every launch.
-            adminTerminalBorder.RenderTransform = adminTerminalTransform;
-            adminTerminalBorder.Visibility = Visibility.Collapsed;
-            ResetAdminTerminalAnimation();
-
             SettingsGuy settingsGuy = new SettingsGuy();
             plumber = settingsGuy.loAd();
 
@@ -180,7 +172,8 @@ namespace navigationshurely
                 plumber.LastMarks,
                 plumber.LastBookNumber,
                 plumber.LastChapterNumber,
-                plumber.LastVerseNumber, _aliasCatalog);
+                plumber.LastVerseNumber, 
+                _aliasCatalog);
 
             ConnectNavigatorEvents();
             ConnectInputEvents();
@@ -236,6 +229,7 @@ namespace navigationshurely
             inputHandler.ShowMarks += ShowMarks;
             inputHandler.PressEnterVisibilityChanged += SetPressEnterVisibility;
             inputHandler.ToggleOptions += ToggleOptions;
+            inputHandler.AdminSession += AdminSesh;
         }
 
         private void ToggleOptions()
@@ -248,9 +242,6 @@ namespace navigationshurely
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Admin sessions are intentionally memory-only and never restored.
-            adminTerminalBorder.Visibility = Visibility.Collapsed;
-            ResetAdminTerminalAnimation();
 
             UpdateVerseDisplay(force: true);
 
@@ -275,8 +266,6 @@ namespace navigationshurely
 
         private void PrepareToClose()
         {
-            // Always invalidate and hide the transient terminal during shutdown.
-            ExitAdminSession();
 
             // Ctrl+Q calls this before Shutdown, and OnClosed calls it again.
             // Save once, using the navigator's current verse rather than a UI
@@ -306,14 +295,6 @@ namespace navigationshurely
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // Escape belongs to the admin session only while it is active.
-            // Outside admin mode it continues through the original InputHandler path.
-            if (adminSession.IsActive && e.Key == Key.Escape)
-            {
-                ExitAdminSession();
-                e.Handled = true;
-                return;
-            }
 
             // Global verse zoom shortcuts are intercepted before the parser.
             // They therefore work in every mode, including partial aliases,
@@ -398,16 +379,9 @@ namespace navigationshurely
             if (status == EntireCommandStatus.Valid)
             {
                 Command? command = inputHandler.GetCommand();
-                string? submittedSearchPhrase =
-                    inputHandler.TakeSubmittedSearchPhrase();
 
                 if (command != null)
                 {
-                    // This interception happens only after Enter produced a
-                    // completed search command, and before BibleNavigator sees it.
-                    if (TryHandleAdminUnlock(command, submittedSearchPhrase))
-                        return;
-
                     navigator.ProcessCommand(command);
 
                     InterfaceUpdate(commandWasProcessedByNavigator: true);
@@ -421,46 +395,12 @@ namespace navigationshurely
             InterfaceUpdate(commandWasProcessedByNavigator: false);
         }
 
-        private bool TryHandleAdminUnlock(
-            Command command,
-            string? submittedSearchPhrase)
+        private void AdminSesh()
         {
-            // Quantity 0 / Query is the normal submitted-search command emitted
-            // by Linguist. Other Query commands (for example filter refreshes)
-            // must not be considered an unlock attempt.
-            if (command.Mode != State.Query || command.Quantity != 0 ||
-                !string.Equals(
-                    submittedSearchPhrase,
-                    "sudo -i",
-                    StringComparison.OrdinalIgnoreCase))
+            if (navigator.IsAllowed())
             {
-                return false;
-            }
-
-            Verse currentVerse = navigator.CurrentVerse;
-            bool correctVerse =
-                currentVerse.BookId == 2 &&
-                currentVerse.Chapter == 28 &&
-                currentVerse.VerseNumber == 17;
-
-            bool correctTranslation = _database.TranslationNumber() == 2;
-
-            if (!correctVerse || !correctTranslation)
-                return false;
-
-            // Do not re-run the entrance animation for repeated valid submits
-            // during an already-active session, but still consume the command.
-            bool newlyActivated = adminSession.Activate();
-
-            // Restore the exact navigation mode remembered by Linguist when '/'
-            // opened search, clear partial search parser state and close its UI.
-            inputHandler.ExitSearchMode();
-            InterfaceUpdate(commandWasProcessedByNavigator: false);
-
-            if (newlyActivated)
                 ShowAdminTerminal();
-
-            return true;
+            }
         }
 
         private void GuidedModeBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -609,132 +549,11 @@ namespace navigationshurely
 
         private void ShowAdminTerminal()
         {
-            // Reset any interrupted run before measuring and showing the overlay.
-            ResetAdminTerminalAnimation();
-            adminTerminalBorder.Opacity = 0.0;
-            adminTerminalBorder.Visibility = Visibility.Visible;
-
-            // The height is needed to calculate the exact off-screen start offset.
-            UpdateLayout();
-            AnimateAdminTerminalEntrance();
+            AdminWindow adminWindow = new AdminWindow();
+            adminWindow.Owner = this;
+            adminWindow.ShowDialog();
         }
 
-        private void AnimateAdminTerminalEntrance()
-        {
-            // Defensive cancellation if this entrance is ever requested while
-            // another terminal entrance is still running.
-            if (adminTerminalAnimationRunning)
-                ResetAdminTerminalAnimation();
-
-            int version = ++adminTerminalAnimationVersion;
-            adminTerminalAnimationRunning = true;
-
-            // The terminal enters from above; the guided label enters from below.
-            double startOffset =
-                -Math.Max(adminTerminalBorder.ActualHeight + 12.0, 44.0);
-
-            adminTerminalTransform.BeginAnimation(
-                TranslateTransform.YProperty,
-                null);
-            adminTerminalBorder.BeginAnimation(
-                UIElement.OpacityProperty,
-                null);
-
-            adminTerminalTransform.Y = startOffset;
-            adminTerminalBorder.Opacity = 0.0;
-
-            TimeSpan middleTime = TimeSpan.FromMilliseconds(125);
-            TimeSpan endTime = TimeSpan.FromMilliseconds(250);
-
-            DoubleAnimationUsingKeyFrames slide = new();
-            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
-                startOffset,
-                KeyTime.FromTimeSpan(TimeSpan.Zero)));
-            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
-                startOffset * 0.18,
-                KeyTime.FromTimeSpan(middleTime))
-            {
-                EasingFunction = new QuadraticEase
-                {
-                    EasingMode = EasingMode.EaseIn
-                }
-            });
-            slide.KeyFrames.Add(new EasingDoubleKeyFrame(
-                0.0,
-                KeyTime.FromTimeSpan(endTime))
-            {
-                EasingFunction = new QuadraticEase
-                {
-                    EasingMode = EasingMode.EaseOut
-                }
-            });
-
-            DoubleAnimationUsingKeyFrames fade = new();
-            fade.KeyFrames.Add(new EasingDoubleKeyFrame(
-                0.0,
-                KeyTime.FromTimeSpan(TimeSpan.Zero)));
-            fade.KeyFrames.Add(new EasingDoubleKeyFrame(
-                1.0,
-                KeyTime.FromTimeSpan(endTime))
-            {
-                EasingFunction = new QuadraticEase
-                {
-                    EasingMode = EasingMode.EaseOut
-                }
-            });
-
-            slide.Completed += (animationSender, animationArgs) =>
-            {
-                // A deactivation or newer entrance invalidates stale callbacks.
-                if (version != adminTerminalAnimationVersion)
-                    return;
-
-                adminTerminalTransform.BeginAnimation(
-                    TranslateTransform.YProperty,
-                    null);
-                adminTerminalTransform.Y = 0.0;
-                adminTerminalBorder.BeginAnimation(
-                    UIElement.OpacityProperty,
-                    null);
-                adminTerminalBorder.Opacity = 1.0;
-                adminTerminalAnimationRunning = false;
-            };
-
-            adminTerminalTransform.BeginAnimation(
-                TranslateTransform.YProperty,
-                slide,
-                HandoffBehavior.SnapshotAndReplace);
-            adminTerminalBorder.BeginAnimation(
-                UIElement.OpacityProperty,
-                fade,
-                HandoffBehavior.SnapshotAndReplace);
-        }
-
-        private void ResetAdminTerminalAnimation()
-        {
-            // Invalidates any completion callback still queued by an old run.
-            adminTerminalAnimationVersion++;
-            adminTerminalAnimationRunning = false;
-
-            adminTerminalTransform.BeginAnimation(
-                TranslateTransform.YProperty,
-                null);
-            adminTerminalTransform.Y = 0.0;
-
-            adminTerminalBorder.BeginAnimation(
-                UIElement.OpacityProperty,
-                null);
-            adminTerminalBorder.Opacity = 1.0;
-        }
-
-        private void ExitAdminSession()
-        {
-            if (adminSession.IsActive)
-                adminSession.Deactivate();
-
-            ResetAdminTerminalAnimation();
-            adminTerminalBorder.Visibility = Visibility.Collapsed;
-        }
 
         // =========================================================
         // LAYOUT VISIBILITY
@@ -1990,7 +1809,7 @@ namespace navigationshurely
 
                 TextBlock footer = new TextBlock
                 {
-                    Text = "The manual is quite large. Please bear with us.",
+                    Text = "...",
 
                     Foreground = new SolidColorBrush(
                         Color.FromRgb(125, 140, 160)),
@@ -2257,7 +2076,5 @@ namespace navigationshurely
             brush.Freeze();
             return brush;
         }
-
-
     }
 }

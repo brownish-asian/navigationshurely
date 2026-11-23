@@ -13,6 +13,7 @@ namespace navigationshurely.Services
         public event Action<bool>? ShowMarks;
         public event Action<bool>? PressEnterVisibilityChanged;
         public event Action? ToggleOptions;
+        public event Action? AdminSession;
 
         private readonly Linguist _linguist;
 
@@ -28,6 +29,9 @@ namespace navigationshurely.Services
 
             _linguist.PressEnterVisibilityChanged +=
                 visible => PressEnterVisibilityChanged?.Invoke(visible);
+
+            _linguist.AdminSession +=
+                AdminSesh;
         }
 
         public bool SearchResultsAvailable => _linguist.SearchResultsAvailable;
@@ -99,16 +103,15 @@ namespace navigationshurely.Services
             return _linguist.TakeCommand();
         }
 
-        // One-shot access to the raw phrase captured at search submission.
-        public string? TakeSubmittedSearchPhrase()
-        {
-            return _linguist.TakeSubmittedSearchPhrase();
-        }
-
         // Restore the navigation mode that preceded the current search session.
         public void ExitSearchMode()
         {
             _linguist.ExitSearchMode();
+        }
+
+        public void AdminSesh()
+        {
+            AdminSession?.Invoke();
         }
 
         public State getState()
