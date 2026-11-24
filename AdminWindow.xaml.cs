@@ -22,16 +22,20 @@ namespace navigationshurely
     public partial class AdminWindow : Window
     {
         private readonly AdminInputHandler _inputHandler = new();
-        private readonly TerminalOrganiser _organiser;
+        private readonly TerminalOrganiser _organiser = new();
         private readonly Tokeniser _tokeniser = new();
         private readonly Processor processor = new();
 
         public AdminWindow()
         {
             InitializeComponent();
+            TerminalOutput.ItemsSource = _organiser.Transcript;
+
             UpdateCommandLine();
             AdminInputDisplay.Focus();
+
             _inputHandler.PassTheMessageToSession += SendOffToZsh;
+            processor.ExitTerminal += Exit;
         }
 
         private void UpdateCommandLine()
@@ -74,17 +78,57 @@ namespace navigationshurely
 
         private void SendOffToZsh()
         {
-            string userCommand = _inputHandler.CommandString();
+            string userCommand = _inputHandler.CommandString().Trim();
+
+            if (string.IsNullOrWhiteSpace(userCommand))
+            {
+                _inputHandler.Clear();
+                UpdateCommandLine();
+                return;
+            }
 
             _organiser.AddCommand(userCommand);
-            List<Token> command = _tokeniser.ParseToken(userCommand);
 
-            if (command != null)
+            try
             {
-                processor.ProcessCommand(command);
-                string response = processor.Response();
-                //display the response somehow
+                // Temporary built-in command.
+                if (userCommand.Equals("clear"))
+                {
+                    _organiser.ClearScreen();
+                }
+                else
+                {
+                    List<Token> command = _tokeniser.ParseToken(userCommand);
+
+                    processor.ProcessCommand(command);
+
+                    string response = processor.Response();
+
+                    _organiser.AddResponse(response);
+                }
             }
+            catch (Exception ex)
+            {
+                _organiser.AddResponse($"Error: {ex.Message}");
+            }
+
+            _inputHandler.Clear();
+            UpdateCommandLine();
+
+            ScrollTerminalToBottom();
+        }
+
+        private void ScrollTerminalToBottom()
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TerminalScrollViewer.ScrollToEnd();
+            }));
+        }
+
+        private void Exit()
+        {
+            this.Close();
         }
     }
 }

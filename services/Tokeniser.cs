@@ -59,7 +59,7 @@ namespace navigationshurely.services
 
         private static bool IsDelimiter(char c)
         {
-            return char.IsWhiteSpace(c) || c is ';' or '{' or '}' or '=' or '(' or ')' or '=' or ',' or '.' or '[' or ']' or '-' or '+' or ';';
+            return char.IsWhiteSpace(c) || c is ';' or '{' or '}' or '=' or '(' or ')' or '=' or ',' or '.' or '[' or ']' or '-' or '+' or ':';
         }
 
         private static bool TryReadSymbol(char c, int position, out Token token)

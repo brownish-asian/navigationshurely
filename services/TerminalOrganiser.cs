@@ -1,31 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 
 namespace navigationshurely.services
 {
     public class TerminalOrganiser
     {
+        // Actual command history.
+        private readonly List<string> prevCommands = new();
+
+        // Everything currently displayed in the terminal.
+        public ObservableCollection<string> Transcript { get; }
+            = new();
+
         public TerminalOrganiser() { }
-
-
-        private List<string> prevCommands = new List<string>();
-
-        public string GetAllCommands()
-        {
-            var stringBuilder = new StringBuilder();
-            for (int i = 0; i < prevCommands.Count; i++)
-            {
-                stringBuilder.AppendLine($"> {prevCommands[i]}");
-            }
-            return stringBuilder.ToString();
-        }
 
         public void AddCommand(string command)
         {
             prevCommands.Add(command);
+
+            Transcript.Add($"> {command}");
+        }
+
+        public void AddResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return;
+
+            string[] lines = response.Replace("\r\n", "\n").Split('\n');
+
+            foreach (string line in lines)
+            {
+                Transcript.Add(line);
+            }
+        }
+
+        public void ClearScreen()
+        {
+            Transcript.Clear();
+        }
+
+        public string GetAllCommands()
+        {
+            return string.Join(
+                Environment.NewLine,
+                prevCommands.ConvertAll(command => $"> {command}"));
         }
     }
 }

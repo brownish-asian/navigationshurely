@@ -28,7 +28,38 @@
         </Border.RenderTransform>
 
         <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Terminal output -->
+            <ScrollViewer x:Name="TerminalScrollViewer"
+                  Grid.Row="0"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="30">
+
+                <ItemsControl x:Name="TerminalOutput">
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"
+                               Foreground="White"
+                               FontFamily="Consolas"
+                               FontSize="16"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,5"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+
+                </ItemsControl>
+
+            </ScrollViewer>
+
+            <!-- Existing command input -->
             <TextBox x:Name="AdminInputDisplay"
+             Grid.Row="1"
              IsReadOnly="True"
              IsReadOnlyCaretVisible="True"
              Focusable="True"
@@ -39,17 +70,17 @@
              Margin="0"
              Foreground="White"
              CaretBrush="White"
-             HorizontalAlignment="left"
-             VerticalAlignment="Top"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Bottom"
              FontFamily="Consolas"
              FontSize="20"
-                     Visibility="visible"
              TextWrapping="NoWrap"
              HorizontalScrollBarVisibility="Hidden"
              VerticalScrollBarVisibility="Hidden"
              VerticalContentAlignment="Center"
              PreviewKeyDown="AdminInputDisplay_PreviewKeyDown"
              PreviewTextInput="AdminInputDisplay_PreviewTextInput"/>
+
         </Grid>
 
     </Border>
