@@ -12,6 +12,8 @@ using navigationshurely.Services;
 using navigationshurely.services;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using navigationshurely.data;
+using navigationshurely.terminal;
 
 namespace navigationshurely
 {
@@ -31,9 +33,9 @@ namespace navigationshurely
         // Automatic sizing keeps the verse inside its normal display area.
         // The user's adjustment is applied after that fit calculation, so it
         // survives verse changes and window resizes.
-        private const double MaxVerseFontSize = 70;
-        private const double MinVerseFontSize = 5;
-        private const double MaxManualVerseFontSize = 120;
+        private const double MaxVerseFontSize = 90;
+        private const double MinVerseFontSize = 30;
+        private const double MaxManualVerseFontSize = 150;
         private const double VerseFontSizeStep = 2;
 
         private static readonly string[] Backgrounds =
@@ -63,6 +65,8 @@ namespace navigationshurely
         private readonly BibleDatabase _database;
         private readonly BibleNavigator navigator;
         private readonly AliasCatalogue _aliasCatalog = new();
+        private readonly KingState kingState = new();
+        private readonly Librarian librarian = new Librarian("/home");
 
         // =========================================================
         // CHAPTER / VERSE COMMAND OPTIONS
@@ -135,10 +139,6 @@ namespace navigationshurely
         // The guided command label uses a short, isolated transform animation.
         private int guidedLabelAnimationVersion;
         private bool guidedLabelAnimationRunning;
-
-        // Independent animation bookkeeping for the administrative terminal.
-        private int adminTerminalAnimationVersion;
-        private bool adminTerminalAnimationRunning;
 
         // =========================================================
         // CONSTRUCTION AND LIFECYCLE
@@ -401,6 +401,10 @@ namespace navigationshurely
             {
                 ShowAdminTerminal();
             }
+            else
+            {
+                navigator.ProcessCommand(inputHandler.GetCommand());
+            }
         }
 
         private void GuidedModeBox_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -549,9 +553,11 @@ namespace navigationshurely
 
         private void ShowAdminTerminal()
         {
-            AdminWindow adminWindow = new AdminWindow();
+            AdminWindow adminWindow = new AdminWindow(kingState, librarian);
             adminWindow.Owner = this;
             adminWindow.ShowDialog();
+
+            inputHandler.ExitSearchMode();
         }
 
 

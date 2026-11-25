@@ -109,8 +109,8 @@
     </Window.Background>
     <Viewbox Stretch="Uniform">
         <Canvas x:Name="MainCanvas" Width="1920" Height="1080" ClipToBounds="True">
-            <TextBlock x:Name="titleBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="50" HorizontalAlignment="Left" MouseLeftButtonUp="titleBox_MouseRightButtonUp" Canvas.Left="96" Canvas.Top="60"/>
-            <TextBlock x:Name="translationBox" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="30" HorizontalAlignment="Left" MouseLeftButtonUp="translationBox_MouseLeftButtonUp" Canvas.Left="96" Canvas.Top="122"/>
+            <TextBlock x:Name="titleBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="70" HorizontalAlignment="Left" MouseLeftButtonUp="titleBox_MouseRightButtonUp" Canvas.Left="96" Canvas.Top="90"/>
+            <TextBlock x:Name="translationBox" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="40" HorizontalAlignment="Left" MouseLeftButtonUp="translationBox_MouseLeftButtonUp" Canvas.Left="96" Canvas.Top="162"/>
             <!--
             Responsive layout:
             - Side columns act as proportional gutters, with a minimum width for readability.
@@ -119,29 +119,29 @@
         -->
             <!-- Header: aligned with the main text column rather than positioned by a fixed left margin. -->
             <!-- Verse area: its width comes from the centre Grid column. -->
-            <Grid x:Name="verseContainer" Canvas.Left="96" Canvas.Top="173" Width="1728" Height="827">
+            <Grid x:Name="verseContainer" Canvas.Left="96" Canvas.Top="230" Width="1728" Height="800">
                 <TextBlock x:Name="verseBox" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center" MouseLeftButtonUp="verseBox_MouseLeftButtonUp" MouseRightButtonUp="verseBox_MouseRightButtonUp"/>
             </Grid>
             <!-- Right-side dynamic list border -->
             <!-- RIGHT LIST VIEWPORT -->
             <Grid Canvas.Left="1830"
-      Canvas.Top="173"
-      Width="90"
-      Height="827"
-      ClipToBounds="True">
+                  Canvas.Top="173"
+                  Width="90"
+                  Height="827"
+                  ClipToBounds="True">
 
                 <!-- Right-side dynamic list border -->
                 <Border x:Name="rightListBorder"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            Margin="0,20,5,100"
-            Visibility="Collapsed"
-            MinWidth="72"
-            MaxHeight="{Binding ActualHeight, ElementName=verseContainer}"
-            BorderBrush="#00FFFFFF"
-            CornerRadius="4"
-            Padding="2"
-            BorderThickness="2">
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Margin="0,20,5,100"
+                        Visibility="Collapsed"
+                        MinWidth="72"
+                        MaxHeight="{Binding ActualHeight, ElementName=verseContainer}"
+                        BorderBrush="#00FFFFFF"
+                        CornerRadius="4"
+                        Padding="2"
+                        BorderThickness="2">
                     <!-- Right-side dynamic list -->
                     <ListView x:Name="rightList" MouseLeftButtonUp="rightList_MouseLeftButtonUp" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
 

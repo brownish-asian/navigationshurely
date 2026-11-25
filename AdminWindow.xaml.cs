@@ -1,4 +1,6 @@
-﻿using navigationshurely.services;
+﻿using navigationshurely.data;
+using navigationshurely.services;
+using navigationshurely.terminal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,18 +26,32 @@ namespace navigationshurely
         private readonly AdminInputHandler _inputHandler = new();
         private readonly TerminalOrganiser _organiser = new();
         private readonly Tokeniser _tokeniser = new();
-        private readonly Processor processor = new();
+        private readonly Processor processor;
 
-        public AdminWindow()
+        private KingState kingState;
+        private Librarian librarian;
+
+        public AdminWindow(KingState kingState, Librarian librarian)
         {
             InitializeComponent();
             TerminalOutput.ItemsSource = _organiser.Transcript;
+            this.kingState = kingState;
+            this.librarian = librarian;
+
+            processor = new Processor(librarian, _organiser.GetAllCommands);
+
+            TerminalCompleter completer = new TerminalCompleter(librarian);
+
+            _inputHandler.HistoryProvider = () => _organiser.History;
+            _inputHandler.CompletionProvider = completer.GetCompletions;
+
+            processor.ExitTerminal += Exit;
+            processor.ClearTerminal += _organiser.ClearScreen;
 
             UpdateCommandLine();
             AdminInputDisplay.Focus();
 
             _inputHandler.PassTheMessageToSession += SendOffToZsh;
-            processor.ExitTerminal += Exit;
         }
 
         private void UpdateCommandLine()
@@ -91,21 +107,13 @@ namespace navigationshurely
 
             try
             {
-                // Temporary built-in command.
-                if (userCommand.Equals("clear"))
-                {
-                    _organiser.ClearScreen();
-                }
-                else
-                {
-                    List<Token> command = _tokeniser.ParseToken(userCommand);
+                List<Token> command = _tokeniser.ParseToken(userCommand);
 
-                    processor.ProcessCommand(command);
+                processor.ProcessCommand(command);
 
-                    string response = processor.Response();
+                string response = processor.Response();
 
-                    _organiser.AddResponse(response);
-                }
+                _organiser.AddResponse(response);
             }
             catch (Exception ex)
             {
@@ -128,7 +136,17 @@ namespace navigationshurely
 
         private void Exit()
         {
-            this.Close();
+            DoubleAnimation scale = new DoubleAnimation(
+    1, 0, TimeSpan.FromMilliseconds(200))
+            {
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut,
+                }
+            };
+            PopupScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
+            PopupScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
+            Close();
         }
     }
 }

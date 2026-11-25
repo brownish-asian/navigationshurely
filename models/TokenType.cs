@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace navigationshurely.models
+﻿namespace navigationshurely.models
 {
     public enum TokenType
     {
@@ -12,6 +6,7 @@ namespace navigationshurely.models
         String,
 
         Semicolon,
+
         LeftBrace,
         RightBrace,
         LeftBracket,
@@ -24,6 +19,9 @@ namespace navigationshurely.models
         Hyphen,
         Plus,
         Colon,
+
+        OutputRedirect,
+        AppendRedirect,
 
         EndOfInput
     }

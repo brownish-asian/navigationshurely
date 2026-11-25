@@ -13,6 +13,10 @@ namespace navigationshurely.services
         public ObservableCollection<string> Transcript { get; }
             = new();
 
+        // Expose history without allowing the input handler
+        // to modify the underlying collection.
+        public IReadOnlyList<string> History => prevCommands;
+
         public TerminalOrganiser() { }
 
         public void AddCommand(string command)
@@ -27,7 +31,9 @@ namespace navigationshurely.services
             if (string.IsNullOrEmpty(response))
                 return;
 
-            string[] lines = response.Replace("\r\n", "\n").Split('\n');
+            string[] lines = response
+                .Replace("\r\n", "\n")
+                .Split('\n');
 
             foreach (string line in lines)
             {
@@ -44,7 +50,8 @@ namespace navigationshurely.services
         {
             return string.Join(
                 Environment.NewLine,
-                prevCommands.ConvertAll(command => $"> {command}"));
+                prevCommands.ConvertAll(
+                    command => $"> {command}"));
         }
     }
 }

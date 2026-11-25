@@ -17,7 +17,7 @@ namespace navigationshurely.data
 
         public Visibility TestControlsVisibility 
         {
-            get => TestControlsVisibility;
+            get => _testControlsVisibility;
             set
             {
                 if (_testControlsVisibility == value)

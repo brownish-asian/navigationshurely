@@ -1,9 +1,7 @@
 ﻿using navigationshurely.models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace navigationshurely.services
 {
@@ -20,36 +18,40 @@ namespace navigationshurely.services
             {
                 char current = input[i];
 
-                // Ignore whitespace.
                 if (char.IsWhiteSpace(current))
                 {
                     i++;
                     continue;
                 }
 
-                // Single-character structural tokens.
-                if (TryReadSymbol(current, i, out Token symbolToken))
+                // Comments begin at the start of a token.
+                if (current == '#')
                 {
-                    tokens.Add(symbolToken);
-                    i++;
+                    while (i < input.Length && input[i] != '\n')
+                        i++;
+
                     continue;
                 }
 
-                // Quoted string.
-                if (current == '"' || current == '\'')
+                if (TryReadSymbol(input, ref i, out Token symbol))
+                {
+                    tokens.Add(symbol);
+                    continue;
+                }
+
+                if (current is '"' or '\'')
                 {
                     tokens.Add(ReadString(input, ref i));
                     continue;
                 }
 
-                // Ordinary word.
                 tokens.Add(ReadWord(input, ref i));
             }
 
             tokens.Add(new Token
             {
                 Type = TokenType.EndOfInput,
-                Value = "",
+                Value = string.Empty,
                 Position = input.Length,
                 Length = 0
             });
@@ -59,73 +61,95 @@ namespace navigationshurely.services
 
         private static bool IsDelimiter(char c)
         {
-            return char.IsWhiteSpace(c) || c is ';' or '{' or '}' or '=' or '(' or ')' or '=' or ',' or '.' or '[' or ']' or '-' or '+' or ':';
+            return char.IsWhiteSpace(c) || c is ';' or '>';
         }
 
-        private static bool TryReadSymbol(char c, int position, out Token token)
+        private static bool TryReadSymbol(
+            string input,
+            ref int i,
+            out Token token)
         {
-            TokenType? type = c switch
+            int start = i;
+            char current = input[i];
+
+            TokenType? type = current switch
             {
                 ';' => TokenType.Semicolon,
-                '{' => TokenType.LeftBrace,
-                '}' => TokenType.RightBrace,
-                '(' => TokenType.LeftBracket,
-                ')' => TokenType.RightBracket,
-                '=' => TokenType.Equals,
-                ',' => TokenType.Comma,
-                '.' => TokenType.FullStop,
-                '[' => TokenType.LeftSquareBracket,
-                ']' => TokenType.RightSquareBracket,
-                '-' => TokenType.Hyphen,
-                '+' => TokenType.Plus,
-                ':' => TokenType.Colon,
+                '>' => TokenType.OutputRedirect,
                 _ => null
             };
 
-            if (type.HasValue)
+            if (!type.HasValue)
             {
-                token = new Token
-                {
-                    Type = type.Value,
-                    Value = c.ToString(),
-                    Position = position,
-                    Length = 1
-                };
-                return true;
+                token = default!;
+                return false;
             }
 
-            token = default!;
-            return false;
+            if (current == '>' &&
+                i + 1 < input.Length &&
+                input[i + 1] == '>')
+            {
+                type = TokenType.AppendRedirect;
+                i += 2;
+            }
+            else
+            {
+                i++;
+            }
+
+            token = new Token
+            {
+                Type = type.Value,
+                Value = input.Substring(start, i - start),
+                Position = start,
+                Length = i - start
+            };
+
+            return true;
         }
 
         private static Token ReadWord(string input, ref int i)
         {
             int start = i;
+            var builder = new StringBuilder();
 
             while (i < input.Length)
             {
-                char c = input[i];
+                char current = input[i];
 
-                if (IsDelimiter(c))
-                {
+                if (IsDelimiter(current))
                     break;
-                }
 
-                if (c == '"' || c == '\'')
+                if (current is '"' or '\'')
                 {
                     throw new FormatException(
-                        $"Unexpected quote at position {i}. " +
-                        "Quoted arguments must be separate tokens."
-                    );
+                        $"Unexpected quote at position {i}.");
                 }
 
+                if (current == '\\')
+                {
+                    i++;
+
+                    if (i >= input.Length)
+                        throw new FormatException("Incomplete escape sequence.");
+
+                    builder.Append(input[i]);
+                    i++;
+                    continue;
+                }
+
+                builder.Append(current);
                 i++;
             }
+
+            if (builder.Length == 0)
+                throw new FormatException(
+                    $"Could not parse input at position {i}.");
 
             return new Token
             {
                 Type = TokenType.Word,
-                Value = input.Substring(start, i - start),
+                Value = builder.ToString(),
                 Position = start,
                 Length = i - start
             };
@@ -134,60 +158,66 @@ namespace navigationshurely.services
         private static Token ReadString(string input, ref int i)
         {
             int start = i;
-            char quote = input[i];
-            i++;
+            char quote = input[i++];
 
             var builder = new StringBuilder();
             bool closed = false;
 
             while (i < input.Length)
             {
-                char c = input[i];
+                char current = input[i];
 
-                if (c == quote)
+                if (current == quote)
                 {
                     i++;
                     closed = true;
                     break;
                 }
 
-                if (c == '\\')
+                if (current == '\\')
                 {
                     i++;
+
                     if (i >= input.Length)
-                    {
                         throw new FormatException(
-                            $"Incomplete escape sequence at position {i - 1}."
-                        );
-                    }
+                            $"Incomplete escape sequence at position {i - 1}.");
 
                     char escaped = input[i++];
+
                     switch (escaped)
                     {
-                        case 'n': builder.Append('\n'); break;
-                        case 'r': builder.Append('\r'); break;
-                        case 't': builder.Append('\t'); break;
-                        default: builder.Append(escaped); break;
+                        case 'n':
+                            builder.Append('\n');
+                            break;
+
+                        case 'r':
+                            builder.Append('\r');
+                            break;
+
+                        case 't':
+                            builder.Append('\t');
+                            break;
+
+                        default:
+                            builder.Append(escaped);
+                            break;
                     }
+
                     continue;
                 }
 
-                builder.Append(c);
+                builder.Append(current);
                 i++;
             }
 
             if (!closed)
-            {
                 throw new FormatException(
-                    $"Unterminated string beginning at position {start}."
-                );
-            }
+                    $"Unterminated string beginning at position {start}.");
 
             if (i < input.Length && !IsDelimiter(input[i]))
             {
                 throw new FormatException(
-                    $"Unexpected character after quoted string at position {i}."
-                );
+                    $"Unexpected character after quoted string at position {i}.");
             }
 
             return new Token

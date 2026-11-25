@@ -1462,6 +1462,7 @@ namespace navigationshurely.services
             // Capture the source phrase before the structured search draft is
             // handed to the database. MainWindow must never parse SearchText
             // to reconstruct the user's original input.
+            command = new Command { Mode = State.Query, Quantity = 0, Direction = Direct.Absolute, SearchText = wholeQueryWithCommas };
             if (isAllowed)
             {
                 AdminSession?.Invoke();
@@ -1469,7 +1470,6 @@ namespace navigationshurely.services
                 return validity;
             }
 
-            command = new Command { Mode = State.Query, Quantity = 0, Direction = Direct.Absolute, SearchText = wholeQueryWithCommas };
             lastSubmittedSearch = wholeQueryWithCommas;
             parseState = ParseState.Start;
             commandBuffer = string.Empty;
