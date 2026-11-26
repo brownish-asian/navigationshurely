@@ -41,5 +41,26 @@ namespace navigationshurely.terminal
 
         public Config TranslationBoxConfig =>
             GetControlConfig(Controls.TranslationBox);
+
+        public Config FrequencyBoxConfig =>
+            GetControlConfig(Controls.FrequencyBox);
+
+        public Config AliasBoxConfig =>
+            GetControlConfig(Controls.AliasBox);
+
+        public Config ModeBoxConfig =>
+            GetControlConfig(Controls.ModeBox);
+
+        public Config VerseBoxConfig =>
+            GetControlConfig(Controls.VerseBox);
+
+        public Config GuidedHudConfig =>
+            GetControlConfig(Controls.GuidedHud);
+
+        public Config RightListConfig =>
+            GetControlConfig(Controls.RightList);
+
+        public Config BottomListConfig =>
+            GetControlConfig(Controls.BottomList);
     }
 }

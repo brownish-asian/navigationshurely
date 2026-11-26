@@ -625,6 +625,7 @@ namespace navigationshurely.terminal
                         Width = config.Width,
                         Height = config.Height,
                         FontSize = config.FontSize,
+                        ContentScale = config.ContentScale,
                         Visibility = config.Visibility,
                         Size = config.Size
                     };
@@ -886,7 +887,7 @@ namespace navigationshurely.terminal
         private bool TryGetStartingDirectory(
             ref string path,
             out StorageFacility? start,
-            out string error)   
+            out string error)
         {
             error = string.Empty;
             start = null;

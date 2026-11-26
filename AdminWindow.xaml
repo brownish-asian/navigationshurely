@@ -26,9 +26,13 @@
             Background="#2e2e2e">
 
         <Border.RenderTransform>
-            <ScaleTransform x:Name="PopupScale"
-                            ScaleX="0"
-                            ScaleY="0" />
+            <TransformGroup>
+                <ScaleTransform x:Name="PopupScale"
+                                ScaleX="0"
+                                ScaleY="0" />
+                <TranslateTransform x:Name="PopupSlide"
+                                    X="0" />
+            </TransformGroup>
         </Border.RenderTransform>
 
         <Grid>

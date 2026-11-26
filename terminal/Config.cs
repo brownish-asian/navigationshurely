@@ -19,6 +19,7 @@ namespace navigationshurely.terminal
         private double _height = double.NaN;
 
         private double _fontSize = 12;
+        private double _contentScale = 1;
 
         private Visibility _visibility = Visibility.Visible;
 
@@ -84,6 +85,28 @@ namespace navigationshurely.terminal
             }
         }
 
+        /// <summary>
+        /// Uniform scale applied to composite content such as list templates.
+        /// Baseline typography remains in XAML; the profile stores only this factor.
+        /// </summary>
+        public double ContentScale
+        {
+            get => _contentScale;
+            set
+            {
+                ValidateFiniteNumber(nameof(ContentScale), value);
+
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(ContentScale),
+                        "ContentScale must be greater than zero.");
+                }
+
+                SetField(ref _contentScale, value);
+            }
+        }
+
         public Visibility Visibility
         {
             get => _visibility;
@@ -127,6 +150,59 @@ namespace navigationshurely.terminal
                     _top = 162;
                     _fontSize = 40;
                     break;
+
+                case Controls.FrequencyBox:
+                    _left = 1540;
+                    _top = 990;
+                    _width = 340;
+                    _fontSize = 17;
+                    break;
+
+                case Controls.AliasBox:
+                    _left = 0;
+                    _top = 1030;
+                    _width = 1920;
+                    _fontSize = 17;
+                    break;
+
+                case Controls.ModeBox:
+                    _left = 1580;
+                    _top = 1022;
+                    _width = 300;
+                    _fontSize = 24;
+                    break;
+
+                case Controls.VerseBox:
+                    _left = 96;
+                    _top = 230;
+                    _width = 1728;
+                    _height = 800;
+                    break;
+
+                case Controls.GuidedHud:
+                    _left = 1480;
+                    _top = 990;
+                    _width = 400;
+                    _height = 90;
+                    break;
+
+                case Controls.RightList:
+                    _left = 1830;
+                    _top = 173;
+                    _width = 90;
+                    _height = 827;
+                    break;
+
+                case Controls.BottomList:
+                    _left = 30;
+                    _top = 946;
+                    // The original Border has Auto width and a 50-unit
+                    // maximum-height ListView. The viewport supplies a small
+                    // minimum width so it remains selectable while hidden.
+                    // 58 units covers the ListView maximum plus Border chrome.
+                    _width = double.NaN;
+                    _height = 58;
+                    break;
             }
         }
 
@@ -146,6 +222,7 @@ namespace navigationshurely.terminal
                     $"Width={FormatDimension(Width)}\n" +
                     $"Height={FormatDimension(Height)}\n" +
                     $"FontSize={FormatNumber(FontSize)}\n" +
+                    $"ContentScale={FormatNumber(ContentScale)}\n" +
                     $"Visibility={Visibility}\n" +
                     $"Size={Size}";
             }
@@ -178,6 +255,50 @@ namespace navigationshurely.terminal
                 Top = top.Value;
         }
 
+        /// <summary>
+        /// Commits a complete edited rectangle. Every supplied value is
+        /// validated before any property is changed, so an invalid drag cannot
+        /// leave half of a rectangle updated.
+        /// </summary>
+        public void SetLayout(
+            double left,
+            double top,
+            double width,
+            double height,
+            double? fontSize = null,
+            double? contentScale = null)
+        {
+            ValidateFiniteNumber(nameof(Left), left);
+            ValidateFiniteNumber(nameof(Top), top);
+            ValidateDimension(nameof(Width), width);
+            ValidateDimension(nameof(Height), height);
+
+            if (fontSize.HasValue)
+            {
+                ValidateFiniteNumber(nameof(FontSize), fontSize.Value);
+                if (fontSize.Value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(fontSize));
+            }
+
+            if (contentScale.HasValue)
+            {
+                ValidateFiniteNumber(nameof(ContentScale), contentScale.Value);
+                if (contentScale.Value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(contentScale));
+            }
+
+            Left = left;
+            Top = top;
+            Width = width;
+            Height = height;
+
+            if (fontSize.HasValue)
+                FontSize = fontSize.Value;
+
+            if (contentScale.HasValue)
+                ContentScale = contentScale.Value;
+        }
+
         // ----------------------------------------------------
         // CONFIGURATION FILE
         // ----------------------------------------------------
@@ -191,6 +312,7 @@ namespace navigationshurely.terminal
             double newWidth = Width;
             double newHeight = Height;
             double newFontSize = FontSize;
+            double newContentScale = ContentScale;
 
             Visibility newVisibility = Visibility;
             int newSize = Size;
@@ -204,6 +326,7 @@ namespace navigationshurely.terminal
                 Width = defaults.Width;
                 Height = defaults.Height;
                 FontSize = defaults.FontSize;
+                ContentScale = defaults.ContentScale;
                 Visibility = defaults.Visibility;
                 Size = defaults.Size;
 
@@ -269,6 +392,10 @@ namespace navigationshurely.terminal
                         newFontSize = ParsePositiveDouble(key, value);
                         break;
 
+                    case "contentscale":
+                        newContentScale = ParsePositiveDouble(key, value);
+                        break;
+
                     case "visibility":
                         newVisibility = ParseVisibility(value);
                         break;
@@ -290,6 +417,7 @@ namespace navigationshurely.terminal
             Width = newWidth;
             Height = newHeight;
             FontSize = newFontSize;
+            ContentScale = newContentScale;
             Visibility = newVisibility;
             Size = newSize;
         }
@@ -319,6 +447,10 @@ namespace navigationshurely.terminal
 
                 case "fontsize":
                     FontSize = ParsePositiveDouble(property, value);
+                    break;
+
+                case "contentscale":
+                    ContentScale = ParsePositiveDouble(property, value);
                     break;
 
                 case "visibility":

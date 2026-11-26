@@ -67,10 +67,32 @@ namespace navigationshurely.services
         }
 
         // ----------------------------------------------------
+        // LAYOUT UPDATES
+        // ----------------------------------------------------
+
+        public void SetLayout(
+            Controls control,
+            double left,
+            double top,
+            double width,
+            double height,
+            double? fontSize = null,
+            double? contentScale = null)
+        {
+            GetActiveConfig(control).SetLayout(
+                left,
+                top,
+                width,
+                height,
+                fontSize,
+                contentScale);
+        }
+
+        // ----------------------------------------------------
         // CONFIGURATION ACCESS
         // ----------------------------------------------------
 
-        private Config GetActiveConfig(Controls control)
+        public Config GetConfig(Controls control)
         {
             if (!Enum.IsDefined(typeof(Controls), control))
             {
@@ -80,5 +102,7 @@ namespace navigationshurely.services
             return _librarian.CurrentProfile
                 .GetControlConfig(control);
         }
+
+        private Config GetActiveConfig(Controls control) => GetConfig(control);
     }
 }

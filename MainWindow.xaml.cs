@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +12,7 @@ using navigationshurely.models;
 using navigationshurely.Services;
 using navigationshurely.services;
 using System.Windows.Media.Animation;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using navigationshurely.data;
 using navigationshurely.terminal;
@@ -70,6 +72,11 @@ namespace navigationshurely
             new Librarian("/home");
 
         private readonly KingState kingState;
+        private readonly ShiftManager shiftManager;
+        private readonly LayoutEditor layoutEditor;
+
+        // The admin terminal remains alive while its visual is hidden for free-move.
+        private AdminWindow? activeAdminWindow;
 
         // =========================================================
         // CHAPTER / VERSE COMMAND OPTIONS
@@ -154,6 +161,43 @@ namespace navigationshurely
 
             DataContext = kingState;
 
+            shiftManager = new ShiftManager(librarian);
+            layoutEditor = new LayoutEditor(
+                MainCanvas,
+                layoutEditorOverlay,
+                layoutSelectionOutline,
+                layoutEditorStatus,
+                guidedHudEditSurface,
+                new KeyValuePair<LayoutResizeHandle, Rectangle>[]
+                {
+                    new(LayoutResizeHandle.NorthWest, layoutHandleNorthWest),
+                    new(LayoutResizeHandle.North, layoutHandleNorth),
+                    new(LayoutResizeHandle.NorthEast, layoutHandleNorthEast),
+                    new(LayoutResizeHandle.East, layoutHandleEast),
+                    new(LayoutResizeHandle.SouthEast, layoutHandleSouthEast),
+                    new(LayoutResizeHandle.South, layoutHandleSouth),
+                    new(LayoutResizeHandle.SouthWest, layoutHandleSouthWest),
+                    new(LayoutResizeHandle.West, layoutHandleWest)
+                },
+                shiftManager);
+
+            layoutEditor.RegisterRegion(Controls.TitleBox, titleBox);
+            layoutEditor.RegisterRegion(Controls.TranslationBox, translationBox);
+            layoutEditor.RegisterRegion(Controls.FrequencyBox, frequencyBox);
+            layoutEditor.RegisterRegion(Controls.AliasBox, aliasBox);
+            layoutEditor.RegisterRegion(Controls.ModeBox, modeBox);
+            layoutEditor.RegisterRegion(Controls.VerseBox, verseContainer);
+            layoutEditor.RegisterRegion(Controls.GuidedHud, guidedHudRegion);
+            layoutEditor.RegisterRegion(Controls.RightList, rightListViewport);
+            layoutEditor.RegisterRegion(Controls.BottomList, bottomListViewport);
+            layoutEditor.RegisterEditSurface(Controls.TitleBox, titleBoxEditSurface);
+            layoutEditor.RegisterEditSurface(Controls.TranslationBox, translationBoxEditSurface);
+            layoutEditor.RegisterEditSurface(Controls.FrequencyBox, frequencyBoxEditSurface);
+            layoutEditor.RegisterEditSurface(Controls.AliasBox, aliasBoxEditSurface);
+            layoutEditor.RegisterEditSurface(Controls.ModeBox, modeBoxEditSurface);
+
+            kingState.PropertyChanged += KingState_PropertyChanged;
+
             SettingsGuy settingsGuy = new SettingsGuy();
             plumber = settingsGuy.loAd();
 
@@ -178,7 +222,7 @@ namespace navigationshurely
                 plumber.LastMarks,
                 plumber.LastBookNumber,
                 plumber.LastChapterNumber,
-                plumber.LastVerseNumber, 
+                plumber.LastVerseNumber,
                 _aliasCatalog);
 
             ConnectNavigatorEvents();
@@ -187,6 +231,7 @@ namespace navigationshurely
             layout = plumber.LastPreferredLayout;
 
             PreviewKeyDown += MainWindow_PreviewKeyDown;
+            Activated += MainWindow_Activated;
             Loaded += MainWindow_Loaded;
         }
 
@@ -246,6 +291,20 @@ namespace navigationshurely
             optionsVisible = !optionsVisible;
         }
 
+        private void KingState_PropertyChanged(
+            object? sender,
+            PropertyChangedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(e.PropertyName) ||
+                e.PropertyName == nameof(KingState.ActiveProfile))
+            {
+                layoutEditor.RefreshSelection();
+                lastMeasuredVerseWidth = -1;
+                lastMeasuredVerseHeight = -1;
+                AdjustVerseFontSize(force: true);
+            }
+        }
+
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
 
@@ -301,6 +360,58 @@ namespace navigationshurely
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Ctrl+Q is the application's global exit shortcut. Keep it
+            // available while freemove owns keyboard input as well.
+            if (e.Key == Key.Q &&
+                (Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                e.Handled = true;
+                CloseApplication();
+                return;
+            }
+
+            // The admin terminal is modeless so the owner can be used during
+            // freemove. If the owner receives a key while the terminal is
+            // visible in normal admin mode, return input to the admin session
+            // instead of passing it to Bible navigation.
+            AdminWindow? terminal = activeAdminWindow;
+            if (!layoutEditor.IsEnabled &&
+                terminal != null &&
+                terminal.IsVisible)
+            {
+                e.Handled = true;
+                terminal.FocusCommandLine();
+                return;
+            }
+
+            // Free-move can only be entered through the admin terminal's
+            // elevated `freemove` command. Escape is the sole editor exit path.
+            if (layoutEditor.IsEnabled && e.Key == Key.Escape)
+            {
+                layoutEditor.SetEditMode(false);
+                e.Handled = true;
+
+                // Block mouse input before restoring its elevated terminal.
+                // Keep the owner enabled so WPF retains a stable window
+                // activation relationship throughout the hand-off.
+                adminInputBlocker.Visibility = Visibility.Visible;
+                activeAdminWindow?.RestoreFromFreeMove();
+                return;
+            }
+
+            // Layout editing owns keyboard input until it is exited. In
+            // particular, do not pass editor keystrokes into Bible navigation
+            // or the terminal command parser.
+            if (layoutEditor.IsEnabled)
+            {
+                // Keep the standard Windows close shortcut available while
+                // the editor temporarily owns application keyboard input.
+                if (e.Key == Key.System && e.SystemKey == Key.F4)
+                    return;
+
+                e.Handled = true;
+                return;
+            }
 
             // Global verse zoom shortcuts are intercepted before the parser.
             // They therefore work in every mode, including partial aliases,
@@ -314,6 +425,31 @@ namespace navigationshurely
             EntireCommandStatus status = inputHandler.ProcessKey(e.Key);
             HandleInputResult(status);
             e.Handled = true;
+        }
+
+        /// <summary>
+        /// Keeps the admin session in control whenever the owner is activated
+        /// outside free-move, including an accidental Alt+Tab to MainWindow.
+        /// </summary>
+        private void MainWindow_Activated(object? sender, EventArgs e)
+        {
+            AdminWindow? terminal = activeAdminWindow;
+            if (layoutEditor.IsEnabled || terminal == null)
+                return;
+
+            // Defer until the activation event has completed. The terminal may
+            // be in the middle of being shown or closed at this point.
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(() =>
+                {
+                    if (!layoutEditor.IsEnabled &&
+                        ReferenceEquals(activeAdminWindow, terminal) &&
+                        terminal.IsVisible)
+                    {
+                        terminal.FocusCommandLine();
+                    }
+                }));
         }
 
         private bool TryHandleVerseFontShortcut(KeyEventArgs e)
@@ -559,10 +695,85 @@ namespace navigationshurely
 
         private void ShowAdminTerminal()
         {
-            AdminWindow adminWindow = new AdminWindow(kingState, librarian);
-            adminWindow.Owner = this;
-            adminWindow.ShowDialog();
+            // Keep a single terminal instance so its history, transcript and
+            // Vim session survive temporarily entering free-move mode.
+            if (activeAdminWindow != null)
+            {
+                activeAdminWindow.Activate();
+                activeAdminWindow.FocusCommandLine();
+                return;
+            }
 
+            AdminWindow adminWindow = new AdminWindow(kingState, librarian)
+            {
+                Owner = this
+            };
+
+            activeAdminWindow = adminWindow;
+
+            adminWindow.FreeMoveRequested += AdminWindow_FreeMoveRequested;
+            adminWindow.FreeMoveTerminalHidden += AdminWindow_FreeMoveTerminalHidden;
+            adminWindow.Closed += AdminWindow_Closed;
+
+            // Keep the terminal modeless so the owner can receive input during
+            // free-move. A transparent blocker preserves the old modal-style
+            // mouse restriction without disabling the owner window. Disabling
+            // an owner while hiding/restoring an owned window can leave WPF's
+            // keyboard activation state inconsistent.
+            adminInputBlocker.Visibility = Visibility.Visible;
+            adminWindow.Show();
+            adminWindow.FocusCommandLine();
+
+            inputHandler.ExitSearchMode();
+        }
+
+        private void AdminWindow_FreeMoveRequested()
+        {
+            if (activeAdminWindow == null || layoutEditor.IsEnabled)
+                return;
+
+            // Prepare the editor before the transition. The main-window input
+            // blocker stays visible until the terminal has completely hidden.
+            layoutEditor.SetEditMode(true);
+            activeAdminWindow.AnimateOutForFreeMove();
+        }
+
+        private void AdminWindow_FreeMoveTerminalHidden()
+        {
+            if (!layoutEditor.IsEnabled)
+                return;
+
+            // Release the input blocker only after the terminal has completely
+            // hidden. The main window itself has remained enabled throughout.
+            adminInputBlocker.Visibility = Visibility.Collapsed;
+
+            // Focus on the next dispatcher input pass, after the owned window's
+            // Hide() and activation hand-off have finished.
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Input,
+                new Action(() =>
+                {
+                    if (!layoutEditor.IsEnabled || !IsVisible)
+                        return;
+
+                    Activate();
+                    MainCanvas.Focus();
+                    Keyboard.Focus(MainCanvas);
+                }));
+        }
+
+        private void AdminWindow_Closed(object? sender, EventArgs e)
+        {
+            if (ReferenceEquals(sender, activeAdminWindow))
+                activeAdminWindow = null;
+
+            if (layoutEditor.IsEnabled)
+                layoutEditor.SetEditMode(false);
+
+            // Closing the admin terminal releases the temporary mouse blocker.
+            // The owner was never disabled, so WPF can restore its previous
+            // activation and keyboard-focus route normally.
+            adminInputBlocker.Visibility = Visibility.Collapsed;
             inputHandler.ExitSearchMode();
         }
 
@@ -1320,6 +1531,18 @@ namespace navigationshurely
 
             guidedBookCodes[translationNumber] = result;
             return result;
+        }
+
+        private void verseContainer_SizeChanged(
+            object sender,
+            SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged || e.HeightChanged)
+            {
+                lastMeasuredVerseWidth = -1;
+                lastMeasuredVerseHeight = -1;
+                AdjustVerseFontSize(force: true);
+            }
         }
 
         private void AdjustVerseFontSize(bool force = false)

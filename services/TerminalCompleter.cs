@@ -46,6 +46,7 @@ namespace navigationshurely.services
 
             "pstn",
             "shift",
+            "freemove",
 
             "basename",
             "dirname",

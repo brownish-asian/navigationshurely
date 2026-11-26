@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace navigationshurely
 {
@@ -31,12 +32,19 @@ namespace navigationshurely
 
         private VimMode? _lastVimMode;
 
+        private bool _hiddenForFreeMove;
+        private bool _freeMoveTransitionInProgress;
+
+        public event Action? FreeMoveRequested;
+        public event Action? FreeMoveTerminalHidden;
+
         private KingState kingState;
         private Librarian librarian;
 
         public AdminWindow(KingState kingState, Librarian librarian)
         {
             InitializeComponent();
+            PreviewKeyDown += AdminWindow_PreviewKeyDown;
             TerminalOutput.ItemsSource = _organiser.Transcript;
             this.kingState = kingState;
             this.librarian = librarian;
@@ -54,11 +62,148 @@ namespace navigationshurely
             processor.ExitTerminal += Exit;
             processor.ClearTerminal += _organiser.ClearScreen;
             processor.VimRequested += OpenVimEditor;
+            processor.FreeMoveRequested += QueueFreeMoveRequested;
 
             UpdateCommandLine();
             AdminInputDisplay.Focus();
 
             _inputHandler.PassTheMessageToSession += SendOffToZsh;
+        }
+
+        /// <summary>
+        /// Gives the terminal input focus after it has been shown or restored.
+        /// </summary>
+        public void FocusCommandLine()
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                if (!IsVisible || !IsLoaded)
+                    return;
+
+                // Activate the terminal even if a Vim session is open. Restore
+                // focus to the current Vim surface rather than leaving focus on
+                // the owner window after a FreeMove transition.
+                Activate();
+
+                if (_vimEditor != null)
+                {
+                    if (_vimEditor.Mode == VimMode.CommandLine)
+                    {
+                        VimCommandInput.Focus();
+                        Keyboard.Focus(VimCommandInput);
+                    }
+                    else
+                    {
+                        VimBuffer.Focus();
+                        Keyboard.Focus(VimBuffer);
+                    }
+
+                    return;
+                }
+
+                UpdateCommandLine();
+                AdminInputDisplay.Focus();
+                Keyboard.Focus(AdminInputDisplay);
+            }));
+        }
+
+        private void QueueFreeMoveRequested()
+        {
+            // Defer the owner transition until command processing has finished
+            // appending the response and clearing the terminal input line.
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(() =>
+                {
+                    // A later command in the same command line may have closed
+                    // the terminal before this queued transition is dispatched.
+                    if (IsVisible && !_hiddenForFreeMove &&
+                        !_freeMoveTransitionInProgress)
+                    {
+                        FreeMoveRequested?.Invoke();
+                    }
+                }));
+        }
+
+        /// <summary>
+        /// Slides the terminal away, then hides (but does not close) this
+        /// window so the owner can receive mouse input during free-move.
+        /// </summary>
+        public void AnimateOutForFreeMove()
+        {
+            if (_hiddenForFreeMove || _freeMoveTransitionInProgress || !IsVisible)
+                return;
+
+            _freeMoveTransitionInProgress = true;
+
+            DoubleAnimation slideOut = new DoubleAnimation(
+                0,
+                ActualWidth + 40,
+                TimeSpan.FromMilliseconds(260))
+            {
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseIn
+                },
+                FillBehavior = FillBehavior.Stop
+            };
+
+            slideOut.Completed += (_, _) =>
+            {
+                PopupSlide.BeginAnimation(TranslateTransform.XProperty, null);
+                PopupSlide.X = 0;
+
+                _hiddenForFreeMove = true;
+                _freeMoveTransitionInProgress = false;
+
+                Hide();
+                FreeMoveTerminalHidden?.Invoke();
+            };
+
+            PopupSlide.BeginAnimation(TranslateTransform.XProperty, slideOut);
+        }
+
+        /// <summary>
+        /// Shows the same terminal instance again and restores command-line focus.
+        /// </summary>
+        public void RestoreFromFreeMove()
+        {
+            if (!_hiddenForFreeMove || _freeMoveTransitionInProgress)
+                return;
+
+            _hiddenForFreeMove = false;
+            _freeMoveTransitionInProgress = true;
+
+            double slideDistance = ActualWidth > 0 ? ActualWidth + 40 : Width + 40;
+
+            PopupSlide.BeginAnimation(TranslateTransform.XProperty, null);
+            PopupSlide.X = slideDistance;
+
+            Show();
+
+            DoubleAnimation slideIn = new DoubleAnimation(
+                slideDistance,
+                0,
+                TimeSpan.FromMilliseconds(260))
+            {
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = EasingMode.EaseOut
+                },
+                FillBehavior = FillBehavior.Stop
+            };
+
+            slideIn.Completed += (_, _) =>
+            {
+                PopupSlide.BeginAnimation(TranslateTransform.XProperty, null);
+                PopupSlide.X = 0;
+                _freeMoveTransitionInProgress = false;
+
+                Activate();
+                FocusCommandLine();
+            };
+
+            PopupSlide.BeginAnimation(TranslateTransform.XProperty, slideIn);
         }
 
         private void UpdateCommandLine()
@@ -326,9 +471,7 @@ namespace navigationshurely
             UpdateVimDisplay();
         }
 
-        private void VimBuffer_PreviewTextInput(
-    object sender,
-    TextCompositionEventArgs e)
+        private void VimBuffer_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             if (_vimEditor == null)
                 return;
@@ -397,6 +540,18 @@ namespace navigationshurely
             UpdateCommandLine();
 
             AdminInputDisplay.Focus();
+        }
+
+        private void AdminWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // Match MainWindow's global Ctrl+Q exit shortcut even while the
+            // elevated terminal or its Vim editor owns keyboard focus.
+            if (e.Key == Key.Q &&
+                (Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                e.Handled = true;
+                Application.Current?.Shutdown();
+            }
         }
 
         private void AdminInputDisplay_PreviewKeyDown(object sender, KeyEventArgs e)

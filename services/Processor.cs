@@ -19,6 +19,7 @@ namespace navigationshurely.services
         public event Action? ExitTerminal;
         public event Action? ClearTerminal;
         public event Action<string, string>? VimRequested;
+        public event Action? FreeMoveRequested;
 
         private bool exitRequested;
 
@@ -181,6 +182,13 @@ namespace navigationshurely.services
                     return args.Count == 0
                         ? "admin"
                         : "whoami: too many arguments.";
+
+                case "freemove":
+                    if (args.Count != 0)
+                        return "Usage: freemove";
+
+                    FreeMoveRequested?.Invoke();
+                    return "Entering free-move layout editor...";
 
                 // ------------------------------------------------
                 // PROFILE MANAGEMENT
@@ -1121,6 +1129,9 @@ namespace navigationshurely.services
 "  pstn control [--x L] [--y T] Set absolute position\n" +
 "  shift control [--dx X] [--dy Y] Move relative to current position\n\n" +
 
+                "Elevated layout editing:\n" +
+"  freemove            Enter interactive layout editing\n\n" +
+
                 "Other:\n" +
                 "  history             Display command history\n" +
                 "  whoami              Display current user\n" +
@@ -1198,6 +1209,11 @@ namespace navigationshurely.services
                     "Moves a control relative to its current position in the active profile.\n" +
                     "Positive dx moves right. Positive dy moves down.\n" +
                     "At least one shift value is required. Unspecified axes remain unchanged.",
+
+                "freemove" =>
+                    "freemove\n" +
+                    "Enters the interactive layout editor. This elevated command is available only in the admin terminal.\n" +
+                    "The admin terminal is temporarily hidden while the main interface is edited. Press Esc to leave the editor and restore the terminal.",
 
                 "cat" => "cat [file]\nDisplays file contents.",
 

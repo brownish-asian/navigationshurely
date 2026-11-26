@@ -1,12 +1,14 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:navigationshurely" x:Class="navigationshurely.MainWindow" mc:Ignorable="d" Title="NavigationShurely" Height="450" Width="800" WindowStyle="None" WindowState="Maximized" ResizeMode="NoResize" UseLayoutRounding="True" SnapsToDevicePixels="True">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:navigationshurely" xmlns:svc="clr-namespace:navigationshurely.services" x:Class="navigationshurely.MainWindow" mc:Ignorable="d" Title="NavigationShurely" Height="450" Width="800" WindowStyle="None" WindowState="Maximized" ResizeMode="NoResize" UseLayoutRounding="True" SnapsToDevicePixels="True">
     <Window.Resources>
+        <svc:LayoutScaleConverter x:Key="LayoutScaleConverter"/>
+
         <DataTemplate x:Key="AliasSuggestionTemplate">
             <StackPanel HorizontalAlignment="Stretch">
 
-                <TextBlock Text="{Binding Alias}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="15" TextAlignment="Center"/>
+                <TextBlock Text="{Binding Alias}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=15}" TextAlignment="Center"/>
 
-                <TextBlock Text="{Binding VerseTitle}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" TextAlignment="Center"/>
+                <TextBlock Text="{Binding VerseTitle}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=10}" TextWrapping="Wrap" TextAlignment="Center"/>
 
             </StackPanel>
         </DataTemplate>
@@ -14,9 +16,9 @@
         <DataTemplate x:Key="BookAliasSuggestionTemplate">
             <StackPanel HorizontalAlignment="Stretch">
 
-                <TextBlock Text="{Binding Alias}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="15" TextAlignment="Center"/>
+                <TextBlock Text="{Binding Alias}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=15}" TextAlignment="Center"/>
 
-                <TextBlock Text="{Binding BookTitle}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" TextAlignment="Center"/>
+                <TextBlock Text="{Binding BookTitle}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=10}" TextWrapping="Wrap" TextAlignment="Center"/>
 
             </StackPanel>
         </DataTemplate>
@@ -24,9 +26,9 @@
         <DataTemplate x:Key="MovementQuantifierTemplate">
             <StackPanel HorizontalAlignment="Stretch" Cursor="Hand">
 
-                <TextBlock Text="{Binding Shortcut}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="15" TextAlignment="Center"/>
+                <TextBlock Text="{Binding Shortcut}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=15}" TextAlignment="Center"/>
 
-                <TextBlock Text="{Binding QuantityText}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="10" TextAlignment="Center"/>
+                <TextBlock Text="{Binding QuantityText}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=10}" TextAlignment="Center"/>
 
             </StackPanel>
         </DataTemplate>
@@ -36,9 +38,9 @@
         <DataTemplate x:Key="MovementEnderTemplate">
             <StackPanel Orientation="Horizontal" Cursor="Hand">
 
-                <TextBlock Text="{Binding Shortcut}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Shortcut}" Foreground="#FFEEFF36" FontFamily="Consolas" FontWeight="Bold" FontSize="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=13}" VerticalAlignment="Center"/>
 
-                <TextBlock Text="{Binding Meaning}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Meaning}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=13}" VerticalAlignment="Center"/>
 
             </StackPanel>
         </DataTemplate>
@@ -46,29 +48,29 @@
 
         <!-- Original bottom-list appearance for search filters -->
         <DataTemplate x:Key="BottomListTextTemplate">
-            <TextBlock Text="{Binding}" Foreground="#F1F5F9" FontFamily="Consolas" FontWeight="SemiBold" FontSize="14" TextWrapping="NoWrap" TextAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True"/>
+            <TextBlock Text="{Binding}" Foreground="#F1F5F9" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=14}" TextWrapping="NoWrap" TextAlignment="Center" VerticalAlignment="Center" SnapsToDevicePixels="True"/>
         </DataTemplate>
         <!-- Existing search results: display the Verse.ToString() -->
         <DataTemplate x:Key="SearchVerseTemplate">
-            <TextBlock Text="{Binding}" Foreground="#F1F5F9" FontFamily="Consolas" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" TextAlignment="Center" LineHeight="19" SnapsToDevicePixels="True"/>
+            <TextBlock Text="{Binding}" Foreground="#F1F5F9" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=14}" TextWrapping="Wrap" TextAlignment="Center" LineHeight="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=19}" SnapsToDevicePixels="True"/>
         </DataTemplate>
 
         <!-- Marked verses: display the key and verse -->
         <DataTemplate x:Key="MarkedVerseTemplate">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=20}"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Compact shortcut key -->
-                <Border Grid.Column="0" Background="#303F56" BorderBrush="#60748E" BorderThickness="1" CornerRadius="4" Padding="0" Margin="-5,0,0,0" VerticalAlignment="Center">
+                <Border Grid.Column="0" Background="#303F56" BorderBrush="#60748E" BorderThickness="1" CornerRadius="4" Padding="0" Margin="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter='-5,0,0,0'}" VerticalAlignment="Center">
 
-                    <TextBlock Text="{Binding KeyText}" Foreground="#FFFFFF" FontFamily="Consolas" FontWeight="Bold" FontSize="13" TextAlignment="Center" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding KeyText}" Foreground="#FFFFFF" FontFamily="Consolas" FontWeight="Bold" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=13}" TextAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
 
                 <!-- Verse title -->
-                <TextBlock Grid.Column="1" Text="{Binding VerseText}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="10" TextWrapping="Wrap" VerticalAlignment="Center" Margin="4,0,0,0" Padding="0" TextTrimming="None"/>
+                <TextBlock Grid.Column="1" Text="{Binding VerseText}" Foreground="#F1F5F9" FontFamily="Consolas" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=10}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter='4,0,0,0'}" Padding="0" TextTrimming="None"/>
             </Grid>
         </DataTemplate>
         <!-- Shared colour palette -->
@@ -116,6 +118,7 @@
            FontFamily="Arial"
            FontWeight="Bold"
            FontSize="{Binding ActiveProfile.TitleBoxConfig.FontSize, Mode=OneWay}"
+           TextWrapping="Wrap"
            Width="{Binding ActiveProfile.TitleBoxConfig.Width, Mode=OneWay}"
            Height="{Binding ActiveProfile.TitleBoxConfig.Height, Mode=OneWay}"
            Visibility="{Binding ActiveProfile.TitleBoxConfig.Visibility, Mode=OneWay}"
@@ -131,6 +134,7 @@
            FontWeight="Bold"
            FontStyle="Italic"
            FontSize="{Binding ActiveProfile.TranslationBoxConfig.FontSize, Mode=OneWay}"
+           TextWrapping="Wrap"
            Width="{Binding ActiveProfile.TranslationBoxConfig.Width, Mode=OneWay}"
            Height="{Binding ActiveProfile.TranslationBoxConfig.Height, Mode=OneWay}"
            Visibility="{Binding ActiveProfile.TranslationBoxConfig.Visibility, Mode=OneWay}"
@@ -146,31 +150,37 @@
         -->
             <!-- Header: aligned with the main text column rather than positioned by a fixed left margin. -->
             <!-- Verse area: its width comes from the centre Grid column. -->
-            <Grid x:Name="verseContainer" Canvas.Left="96" Canvas.Top="230" Width="1728" Height="800">
+            <Grid x:Name="verseContainer"
+                  Canvas.Left="{Binding ActiveProfile.VerseBoxConfig.Left, Mode=OneWay}"
+                  Canvas.Top="{Binding ActiveProfile.VerseBoxConfig.Top, Mode=OneWay}"
+                  Width="{Binding ActiveProfile.VerseBoxConfig.Width, Mode=OneWay}"
+                  Height="{Binding ActiveProfile.VerseBoxConfig.Height, Mode=OneWay}"
+                  SizeChanged="verseContainer_SizeChanged">
                 <TextBlock x:Name="verseBox" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Top" HorizontalAlignment="Center" MouseLeftButtonUp="verseBox_MouseLeftButtonUp" MouseRightButtonUp="verseBox_MouseRightButtonUp"/>
             </Grid>
             <!-- Right-side dynamic list border -->
             <!-- RIGHT LIST VIEWPORT -->
-            <Grid Canvas.Left="1830"
-                  Canvas.Top="173"
-                  Width="90"
-                  Height="827"
+            <Grid x:Name="rightListViewport"
+                  Canvas.Left="{Binding ActiveProfile.RightListConfig.Left, Mode=OneWay}"
+                  Canvas.Top="{Binding ActiveProfile.RightListConfig.Top, Mode=OneWay}"
+                  Width="{Binding ActiveProfile.RightListConfig.Width, Mode=OneWay}"
+                  Height="{Binding ActiveProfile.RightListConfig.Height, Mode=OneWay}"
                   ClipToBounds="True">
 
                 <!-- Right-side dynamic list border -->
                 <Border x:Name="rightListBorder"
-                        HorizontalAlignment="Right"
+                        HorizontalAlignment="Stretch"
                         VerticalAlignment="Center"
-                        Margin="0,20,5,100"
+                        MaxHeight="{Binding ActualHeight, ElementName=rightListViewport}"
+                        Margin="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter='0,20,5,100'}"
                         Visibility="Collapsed"
-                        MinWidth="72"
-                        MaxHeight="{Binding ActualHeight, ElementName=verseContainer}"
+                        MinWidth="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=72}"
                         BorderBrush="#00FFFFFF"
                         CornerRadius="4"
-                        Padding="2"
-                        BorderThickness="2">
+                        Padding="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=2}"
+                        BorderThickness="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=2}">
                     <!-- Right-side dynamic list -->
-                    <ListView x:Name="rightList" MouseLeftButtonUp="rightList_MouseLeftButtonUp" HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListView x:Name="rightList" MouseLeftButtonUp="rightList_MouseLeftButtonUp" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
 
                         <ListView.Resources>
                             <!-- Remove the default ListView selection and hover visuals -->
@@ -188,7 +198,11 @@
 
                                 <Setter Property="Padding" Value="0"/>
 
-                                <Setter Property="Margin" Value="0,3"/>
+                                <Setter Property="Margin">
+                                    <Setter.Value>
+                                        <Binding Path="DataContext.ActiveProfile.RightListConfig.ContentScale" RelativeSource="{RelativeSource AncestorType={x:Type Window}}" Converter="{StaticResource LayoutScaleConverter}" ConverterParameter="0,3"/>
+                                    </Setter.Value>
+                                </Setter>
 
                                 <Setter Property="Background" Value="Transparent"/>
 
@@ -200,7 +214,7 @@
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ListViewItem">
 
-                                            <Border x:Name="ItemBorder" Background="#B30B0F16" BorderBrush="{Binding BorderColor}" BorderThickness="2" CornerRadius="5" Padding="4,9" SnapsToDevicePixels="True">
+                                            <Border x:Name="ItemBorder" Background="#B30B0F16" BorderBrush="{Binding BorderColor}" BorderThickness="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=2}" CornerRadius="5" Padding="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter='4,9'}" SnapsToDevicePixels="True">
 
                                                 <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="False"/>
 
@@ -239,7 +253,7 @@
 
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding}" Foreground="#F1F5F9" FontFamily="Consolas" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" TextAlignment="Center" LineHeight="19" SnapsToDevicePixels="True"/>
+                                <TextBlock Text="{Binding}" Foreground="#F1F5F9" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=14}" TextWrapping="Wrap" TextAlignment="Center" LineHeight="{Binding DataContext.ActiveProfile.RightListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=19}" SnapsToDevicePixels="True"/>
                             </DataTemplate>
                         </ListView.ItemTemplate>
 
@@ -249,52 +263,83 @@
             </Grid>
 
 
-            <!-- Bottom dynamic list -->
-            <Border x:Name="bottomListBorder" BorderBrush="#00FFFFFF" CornerRadius="4" Padding="2" BorderThickness="2" Canvas.Left="30" Canvas.Top="946">
+            <!-- Stable bottom-list viewport; the inner Border/ListView keep their existing visibility animations. -->
+            <Grid x:Name="bottomListViewport"
+                  Canvas.Left="{Binding ActiveProfile.BottomListConfig.Left, Mode=OneWay}"
+                  Canvas.Top="{Binding ActiveProfile.BottomListConfig.Top, Mode=OneWay}"
+                  Width="{Binding ActiveProfile.BottomListConfig.Width, Mode=OneWay}"
+                  Height="{Binding ActiveProfile.BottomListConfig.Height, Mode=OneWay}"
+                  MinWidth="160"
+                  ClipToBounds="True">
+                <Border x:Name="bottomListBorder" BorderBrush="#00FFFFFF" CornerRadius="4" Padding="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=2}" BorderThickness="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=2}">
 
-                <ListView x:Name="bottomList" MinHeight="40" MaxHeight="50" HorizontalAlignment="Left" VerticalAlignment="Bottom" Background="Transparent" Visibility="Collapsed" BorderThickness="0" Padding="0" ItemTemplate="{StaticResource BottomListTextTemplate}" MouseLeftButtonUp="bottomList_MouseLeftButtonUp" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListView x:Name="bottomList" MinHeight="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=40}" MaxHeight="{Binding ActualHeight, ElementName=bottomListViewport}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" Visibility="Collapsed" BorderThickness="0" Padding="0" ItemTemplate="{StaticResource BottomListTextTemplate}" MouseLeftButtonUp="bottomList_MouseLeftButtonUp" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
 
-                    <ListView.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ListView.ItemsPanel>
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
 
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
 
-                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="Margin" Value="3,0"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin">
+                                    <Setter.Value>
+                                        <Binding Path="DataContext.ActiveProfile.BottomListConfig.ContentScale" RelativeSource="{RelativeSource AncestorType={x:Type Window}}" Converter="{StaticResource LayoutScaleConverter}" ConverterParameter="3,0"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
 
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListViewItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListViewItem">
 
-                                        <Border x:Name="ItemBorder" Background="#B30B0F16" BorderBrush="{Binding BorderColor}" BorderThickness="2" CornerRadius="5" Padding="9,5" SnapsToDevicePixels="True">
+                                            <Border x:Name="ItemBorder" Background="#B30B0F16" BorderBrush="{Binding BorderColor}" BorderThickness="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter=2}" CornerRadius="5" Padding="{Binding DataContext.ActiveProfile.BottomListConfig.ContentScale, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource LayoutScaleConverter}, ConverterParameter='9,5'}" SnapsToDevicePixels="True">
 
-                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="False"/>
+                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="False"/>
 
-                                        </Border>
+                                            </Border>
 
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
 
-                        </Style>
-                    </ListView.ItemContainerStyle>
-                </ListView>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
 
-            </Border>
-            <!-- Mode indicator -->
-            <TextBlock x:Name="frequencyBox" Text="" Foreground="#FF9FCBDF" FontFamily="Consolas" FontWeight="Bold" FontSize="17" Canvas.Left="1540" Canvas.Top="990" Width="340" TextAlignment="Right"/>
+                </Border>
+            </Grid>
+            <!-- These Classic status elements remain independent layout objects. -->
+            <TextBlock x:Name="frequencyBox" Text="" Foreground="#FF9FCBDF" FontFamily="Consolas" FontWeight="Bold"
+                       FontSize="{Binding ActiveProfile.FrequencyBoxConfig.FontSize, Mode=OneWay}"
+                       Canvas.Left="{Binding ActiveProfile.FrequencyBoxConfig.Left, Mode=OneWay}"
+                       Canvas.Top="{Binding ActiveProfile.FrequencyBoxConfig.Top, Mode=OneWay}"
+                       Width="{Binding ActiveProfile.FrequencyBoxConfig.Width, Mode=OneWay}"
+                       Height="{Binding ActiveProfile.FrequencyBoxConfig.Height, Mode=OneWay}"
+                       TextWrapping="Wrap" TextAlignment="Right"/>
             <!-- Alias indicator -->
-            <TextBlock x:Name="aliasBox" Text="" Foreground="#FF54C8FF" FontFamily="Consolas" FontWeight="Bold" FontSize="17" Visibility="Visible" Canvas.Left="0" Canvas.Top="1030" Width="1920" TextAlignment="Center"/>
-            <TextBlock x:Name="modeBox" Text="" Style="{StaticResource ModeStyle}" Canvas.Left="1580" Canvas.Top="1022" Width="300" TextAlignment="Right"/>
+            <TextBlock x:Name="aliasBox" Text="" Foreground="#FF54C8FF" FontFamily="Consolas" FontWeight="Bold"
+                       FontSize="{Binding ActiveProfile.AliasBoxConfig.FontSize, Mode=OneWay}"
+                       Visibility="Visible"
+                       Canvas.Left="{Binding ActiveProfile.AliasBoxConfig.Left, Mode=OneWay}"
+                       Canvas.Top="{Binding ActiveProfile.AliasBoxConfig.Top, Mode=OneWay}"
+                       Width="{Binding ActiveProfile.AliasBoxConfig.Width, Mode=OneWay}"
+                       Height="{Binding ActiveProfile.AliasBoxConfig.Height, Mode=OneWay}"
+                       TextWrapping="Wrap" TextAlignment="Center"/>
+            <TextBlock x:Name="modeBox" Text="" Style="{StaticResource ModeStyle}"
+                       FontSize="{Binding ActiveProfile.ModeBoxConfig.FontSize, Mode=OneWay}"
+                       Canvas.Left="{Binding ActiveProfile.ModeBoxConfig.Left, Mode=OneWay}"
+                       Canvas.Top="{Binding ActiveProfile.ModeBoxConfig.Top, Mode=OneWay}"
+                       Width="{Binding ActiveProfile.ModeBoxConfig.Width, Mode=OneWay}"
+                       Height="{Binding ActiveProfile.ModeBoxConfig.Height, Mode=OneWay}"
+                       TextWrapping="Wrap" TextAlignment="Right"/>
             <!-- Command buffer -->
             <TextBlock x:Name="refreshSearchBox" Text="Press [Enter] to refresh search" Foreground="{StaticResource AccentBrush}" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="16" Canvas.Left="650" Canvas.Top="1011" Width="620" TextAlignment="Center"/>
             <!-- Buffer box border -->
@@ -306,82 +351,145 @@
             <!-- Hints -->
             <TextBlock x:Name="hintBoxOne" Text="[space];f for help" Style="{StaticResource HintStyle}" Canvas.Left="30" Canvas.Top="1010"/>
             <TextBlock x:Name="hintBoxTwo" Text="[space];e to toggle UI" Style="{StaticResource HintStyle}" Canvas.Left="30" Canvas.Top="1040"/>
-            <Canvas x:Name="HudCanvas" Canvas.Left="1480" Canvas.Top="990" Width="400" Height="90">
-                <Border x:Name="searchBorder" Tag="S" MinWidth="64" Background="Transparent" BorderBrush="#00FFFFFF" CornerRadius="4" Padding="2" BorderThickness="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,15,0" Cursor="Hand" ToolTip="Select Semicolon mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" MouseEnter="GuidedLabel_MouseEnter" Canvas.Left="0" Canvas.Top="60">
-                    <Border.RenderTransform>
-                        <TranslateTransform Y="0"/>
-                    </Border.RenderTransform>
-                    <TextBlock x:Name="guidedLabel" Text="" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="20"/>
+            <Grid x:Name="guidedHudRegion"
+                  Canvas.Left="{Binding ActiveProfile.GuidedHudConfig.Left, Mode=OneWay}"
+                  Canvas.Top="{Binding ActiveProfile.GuidedHudConfig.Top, Mode=OneWay}"
+                  Width="{Binding ActiveProfile.GuidedHudConfig.Width, Mode=OneWay}"
+                  Height="{Binding ActiveProfile.GuidedHudConfig.Height, Mode=OneWay}">
+                <Viewbox Stretch="Fill">
+                    <Canvas x:Name="HudCanvas" Width="400" Height="90">
+                        <Border x:Name="searchBorder" Tag="S" MinWidth="64" Background="Transparent" BorderBrush="#00FFFFFF" CornerRadius="4" Padding="2" BorderThickness="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,15,0" Cursor="Hand" ToolTip="Select Semicolon mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" MouseEnter="GuidedLabel_MouseEnter" Canvas.Left="0" Canvas.Top="60">
+                            <Border.RenderTransform>
+                                <TranslateTransform Y="0"/>
+                            </Border.RenderTransform>
+                            <TextBlock x:Name="guidedLabel" Text="" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="20"/>
+                        </Border>
+
+                        <StackPanel x:Name="guidedHudPanel" Orientation="Vertical" Canvas.Left="80" Canvas.Top="10" Width="310">
+
+                            <!-- MODE INDICATORS -->
+                            <Grid Width="298" Margin="0,0,0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="190"/>
+                                    <ColumnDefinition Width="45"/>
+                                    <ColumnDefinition Width="18"/>
+                                    <ColumnDefinition Width="45"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- BOOK MODE -->
+                                <Border x:Name="bookModeIndicator" Grid.Column="0" Tag="B" Cursor="Hand" ToolTip="Select Book mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Visibility="Collapsed" Background="#55071320" BorderBrush="#68788C" BorderThickness="1" CornerRadius="4" Padding="5,3" Margin="2">
+
+                                    <TextBlock Text="BOOK" x:Name="bsBox" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="18" TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- CHAPTER MODE -->
+                                <Border x:Name="chapterModeIndicator" Grid.Column="1" Tag="C" Cursor="Hand" ToolTip="Select Chapter mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Background="#55071320" Visibility="Collapsed" BorderBrush="#68788C" BorderThickness="1" CornerRadius="4" Padding="2" Margin="2">
+
+                                    <TextBlock Text="CH" x:Name="csBox" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="18" TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- VERSE MODE -->
+                                <Border x:Name="verseModeIndicator" Grid.Column="3" Tag="V" Cursor="Hand" ToolTip="Select Verse mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Background="#55071320" Visibility="Collapsed" BorderBrush="#68788C" BorderThickness="1" CornerRadius="4" Padding="2" Margin="2">
+
+                                    <TextBlock Text="VS" x:Name="vsBox" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="18" TextAlignment="Center"/>
+                                </Border>
+
+                            </Grid>
+
+                            <!-- CURRENT REFERENCE + COMMAND BUFFER -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="190"/>
+                                    <ColumnDefinition Width="45"/>
+                                    <ColumnDefinition Width="18"/>
+                                    <ColumnDefinition Width="45"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- BOOK -->
+                                <Border Grid.Column="0" BorderBrush="#20FFFFFF" x:Name="bBorder" Tag="B" Cursor="Hand" ToolTip="Select Book mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" CornerRadius="4" Margin="2" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=guidedBookBox}">
+
+                                    <TextBlock x:Name="guidedBookBox" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- CHAPTER -->
+                                <Border Grid.Column="1" BorderBrush="#20FFFFFF" x:Name="cBorder" CornerRadius="4" Tag="C" Cursor="Hand" ToolTip="Select Chapter mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Margin="2" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=guidedChapterBox}">
+
+                                    <TextBlock x:Name="guidedChapterBox" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- SEPARATOR -->
+                                <Border Grid.Column="2" BorderBrush="#20FFFFFF" x:Name="sBorder" CornerRadius="4" Margin="2" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=semiColonBox}">
+
+                                    <TextBlock x:Name="semiColonBox" Text=":" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
+                                </Border>
+
+                                <!-- VERSE -->
+                                <Border Grid.Column="3" BorderBrush="#20FFFFFF" x:Name="vBorder" CornerRadius="4" Margin="2" Tag="V" Cursor="Hand" ToolTip="Select Verse mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=guidedVerseBox}">
+
+                                    <TextBlock x:Name="guidedVerseBox" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
+                                </Border>
+
+                            </Grid>
+                        </StackPanel>
+                    </Canvas>
+                </Viewbox>
+                <!-- This small edit-only hit target is in an unused corner of the HUD region.
+                     It keeps the HUD selectable even while Guided controls are hidden in Classic layout. -->
+                <Border x:Name="guidedHudEditSurface"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Background="#DD071320"
+                        BorderBrush="#FF54C8FF"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Padding="5,2"
+                        Visibility="Collapsed"
+                        IsHitTestVisible="True">
+                    <TextBlock Text="HUD" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="11"/>
                 </Border>
+            </Grid>
 
-                <StackPanel x:Name="guidedHudPanel" Orientation="Vertical" Canvas.Left="80" Canvas.Top="10" Width="310">
-
-                    <!-- MODE INDICATORS -->
-                    <Grid Width="298" Margin="0,0,0,5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="190"/>
-                            <ColumnDefinition Width="45"/>
-                            <ColumnDefinition Width="18"/>
-                            <ColumnDefinition Width="45"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- BOOK MODE -->
-                        <Border x:Name="bookModeIndicator" Grid.Column="0" Tag="B" Cursor="Hand" ToolTip="Select Book mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Visibility="Collapsed" Background="#55071320" BorderBrush="#68788C" BorderThickness="1" CornerRadius="4" Padding="5,3" Margin="2">
-
-                            <TextBlock Text="BOOK" x:Name="bsBox" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="18" TextAlignment="Center"/>
-                        </Border>
-
-                        <!-- CHAPTER MODE -->
-                        <Border x:Name="chapterModeIndicator" Grid.Column="1" Tag="C" Cursor="Hand" ToolTip="Select Chapter mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Background="#55071320" Visibility="Collapsed" BorderBrush="#68788C" BorderThickness="1" CornerRadius="4" Padding="2" Margin="2">
-
-                            <TextBlock Text="CH" x:Name="csBox" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="18" TextAlignment="Center"/>
-                        </Border>
-
-                        <!-- VERSE MODE -->
-                        <Border x:Name="verseModeIndicator" Grid.Column="3" Tag="V" Cursor="Hand" ToolTip="Select Verse mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Background="#55071320" Visibility="Collapsed" BorderBrush="#68788C" BorderThickness="1" CornerRadius="4" Padding="2" Margin="2">
-
-                            <TextBlock Text="VS" x:Name="vsBox" Foreground="#000000" FontFamily="Consolas" FontWeight="Bold" FontSize="18" TextAlignment="Center"/>
-                        </Border>
-
-                    </Grid>
-
-                    <!-- CURRENT REFERENCE + COMMAND BUFFER -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="190"/>
-                            <ColumnDefinition Width="45"/>
-                            <ColumnDefinition Width="18"/>
-                            <ColumnDefinition Width="45"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- BOOK -->
-                        <Border Grid.Column="0" BorderBrush="#20FFFFFF" x:Name="bBorder" Tag="B" Cursor="Hand" ToolTip="Select Book mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" CornerRadius="4" Margin="2" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=guidedBookBox}">
-
-                            <TextBlock x:Name="guidedBookBox" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
-                        </Border>
-
-                        <!-- CHAPTER -->
-                        <Border Grid.Column="1" BorderBrush="#20FFFFFF" x:Name="cBorder" CornerRadius="4" Tag="C" Cursor="Hand" ToolTip="Select Chapter mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Margin="2" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=guidedChapterBox}">
-
-                            <TextBlock x:Name="guidedChapterBox" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
-                        </Border>
-
-                        <!-- SEPARATOR -->
-                        <Border Grid.Column="2" BorderBrush="#20FFFFFF" x:Name="sBorder" CornerRadius="4" Margin="2" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=semiColonBox}">
-
-                            <TextBlock x:Name="semiColonBox" Text=":" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
-                        </Border>
-
-                        <!-- VERSE -->
-                        <Border Grid.Column="3" BorderBrush="#20FFFFFF" x:Name="vBorder" CornerRadius="4" Margin="2" Tag="V" Cursor="Hand" ToolTip="Select Verse mode" MouseLeftButtonUp="GuidedModeBox_MouseLeftButtonUp" Padding="2" BorderThickness="2" Visibility="{Binding Visibility, ElementName=guidedVerseBox}">
-
-                            <TextBlock x:Name="guidedVerseBox" Foreground="White" FontFamily="Consolas" Visibility="Collapsed" FontWeight="Bold" FontSize="20" VerticalAlignment="Center" TextAlignment="Center"/>
-                        </Border>
-
-                    </Grid>
-                </StackPanel>
+            <!-- Selection outline and resize grips are only visible in Layout Edit Mode. -->
+            <Canvas x:Name="layoutEditorOverlay" Width="1920" Height="1080" Panel.ZIndex="1000" IsHitTestVisible="True">
+                <Rectangle x:Name="layoutSelectionOutline" Stroke="#FF54C8FF" StrokeThickness="2" StrokeDashArray="5,3" Fill="#1254C8FF" IsHitTestVisible="False" Visibility="Collapsed"/>
+                <Border x:Name="titleBoxEditSurface" Canvas.Left="{Binding ActiveProfile.TitleBoxConfig.Left}" Canvas.Top="{Binding ActiveProfile.TitleBoxConfig.Top}" Background="#DD071320" BorderBrush="#FF54C8FF" BorderThickness="1" CornerRadius="3" Padding="5,2">
+                    <TextBlock Text="TITLE" Foreground="White" FontFamily="Consolas" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="translationBoxEditSurface" Canvas.Left="{Binding ActiveProfile.TranslationBoxConfig.Left}" Canvas.Top="{Binding ActiveProfile.TranslationBoxConfig.Top}" Background="#DD071320" BorderBrush="#FF54C8FF" BorderThickness="1" CornerRadius="3" Padding="5,2">
+                    <TextBlock Text="TRANSLATION" Foreground="White" FontFamily="Consolas" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="frequencyBoxEditSurface" Canvas.Left="{Binding ActiveProfile.FrequencyBoxConfig.Left}" Canvas.Top="{Binding ActiveProfile.FrequencyBoxConfig.Top}" Background="#DD071320" BorderBrush="#FF54C8FF" BorderThickness="1" CornerRadius="3" Padding="5,2">
+                    <TextBlock Text="FREQUENCY" Foreground="White" FontFamily="Consolas" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="aliasBoxEditSurface" Canvas.Left="{Binding ActiveProfile.AliasBoxConfig.Left}" Canvas.Top="{Binding ActiveProfile.AliasBoxConfig.Top}" Background="#DD071320" BorderBrush="#FF54C8FF" BorderThickness="1" CornerRadius="3" Padding="5,2">
+                    <TextBlock Text="ALIAS" Foreground="White" FontFamily="Consolas" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Border x:Name="modeBoxEditSurface" Canvas.Left="{Binding ActiveProfile.ModeBoxConfig.Left}" Canvas.Top="{Binding ActiveProfile.ModeBoxConfig.Top}" Background="#DD071320" BorderBrush="#FF54C8FF" BorderThickness="1" CornerRadius="3" Padding="5,2">
+                    <TextBlock Text="MODE" Foreground="White" FontFamily="Consolas" FontSize="10" FontWeight="Bold"/>
+                </Border>
+                <Rectangle x:Name="layoutHandleNorthWest" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="NorthWest" Cursor="SizeNWSE" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleNorth" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="North" Cursor="SizeNS" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleNorthEast" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="NorthEast" Cursor="SizeNESW" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleEast" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="East" Cursor="SizeWE" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleSouthEast" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="SouthEast" Cursor="SizeNWSE" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleSouth" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="South" Cursor="SizeNS" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleSouthWest" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="SouthWest" Cursor="SizeNESW" Visibility="Collapsed"/>
+                <Rectangle x:Name="layoutHandleWest" Width="12" Height="12" Fill="White" Stroke="#FF168BC1" StrokeThickness="1.5" Tag="West" Cursor="SizeWE" Visibility="Collapsed"/>
+                <TextBlock x:Name="layoutEditorStatus" Canvas.Left="24" Canvas.Top="24" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="15" Background="#DD071320" Padding="10,6" Visibility="Collapsed" IsHitTestVisible="False"/>
             </Canvas>
+
+            <!-- Blocks mouse interaction with the main interface while the
+                 elevated AdminWindow is open. It is removed during freemove. -->
+            <Rectangle x:Name="adminInputBlocker"
+                       Canvas.Left="0"
+                       Canvas.Top="0"
+                       Width="1920"
+                       Height="1080"
+                       Fill="#01000000"
+                       Panel.ZIndex="2000"
+                       Focusable="False"
+                       Visibility="Collapsed"/>
         </Canvas>
     </Viewbox>
 </Window>
