@@ -5,17 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:navigationshurely"
         mc:Ignorable="d"
-        Title="AdminWindow" Height="450" Width="800"
+        Title="AdminWindow"
+        Height="450"
+        Width="800"
         ResizeMode="NoResize"
         SnapsToDevicePixels="true"
         WindowStyle="None"
         Background="Transparent"
         AllowsTransparency="True"
-        
         x:Name="AdminScreen"
-        
         Loaded="AdminScreen_Loaded"
         ShowInTaskbar="false">
+
 
     <Border x:Name="AdminSession"
             CornerRadius="15, 0, 0, 15"
@@ -23,33 +24,40 @@
             BorderThickness="4"
             BorderBrush="#6b6b6a"
             Background="#2e2e2e">
+
         <Border.RenderTransform>
-            <ScaleTransform x:Name="PopupScale" ScaleX="0" ScaleY="0" />
+            <ScaleTransform x:Name="PopupScale"
+                            ScaleX="0"
+                            ScaleY="0" />
         </Border.RenderTransform>
 
         <Grid>
+
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Terminal output -->
+            <!-- ============================================= -->
+            <!-- NORMAL TERMINAL                               -->
+            <!-- ============================================= -->
+
             <ScrollViewer x:Name="TerminalScrollViewer"
-                  Grid.Row="0"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  Padding="30">
+                          Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="30">
 
                 <ItemsControl x:Name="TerminalOutput">
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding}"
-                               Foreground="White"
-                               FontFamily="Consolas"
-                               FontSize="16"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,5"/>
+                                       Foreground="White"
+                                       FontFamily="Consolas"
+                                       FontSize="16"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,5"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
 
@@ -57,29 +65,154 @@
 
             </ScrollViewer>
 
-            <!-- Existing command input -->
             <TextBox x:Name="AdminInputDisplay"
-             Grid.Row="1"
-             IsReadOnly="True"
-             IsReadOnlyCaretVisible="True"
-             Focusable="True"
-             FocusVisualStyle="{x:Null}"
-             BorderThickness="0"
-             Background="Transparent"
-             Padding="30"
-             Margin="0"
-             Foreground="White"
-             CaretBrush="White"
-             HorizontalAlignment="Left"
-             VerticalAlignment="Bottom"
-             FontFamily="Consolas"
-             FontSize="20"
-             TextWrapping="NoWrap"
-             HorizontalScrollBarVisibility="Hidden"
-             VerticalScrollBarVisibility="Hidden"
-             VerticalContentAlignment="Center"
-             PreviewKeyDown="AdminInputDisplay_PreviewKeyDown"
-             PreviewTextInput="AdminInputDisplay_PreviewTextInput"/>
+                     Grid.Row="1"
+                     IsReadOnly="True"
+                     IsReadOnlyCaretVisible="True"
+                     Focusable="True"
+                     FocusVisualStyle="{x:Null}"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     Padding="30"
+                     Margin="0"
+                     Foreground="White"
+                     CaretBrush="White"
+                     HorizontalAlignment="Left"
+                     VerticalAlignment="Bottom"
+                     FontFamily="Consolas"
+                     FontSize="20"
+                     TextWrapping="NoWrap"
+                     HorizontalScrollBarVisibility="Hidden"
+                     VerticalScrollBarVisibility="Hidden"
+                     VerticalContentAlignment="Center"
+                     PreviewKeyDown="AdminInputDisplay_PreviewKeyDown"
+                     PreviewTextInput="AdminInputDisplay_PreviewTextInput"/>
+
+            <!-- ============================================= -->
+            <!-- VIM EDITOR                                    -->
+            <!-- ============================================= -->
+
+            <Grid x:Name="VimLayout"
+                  Grid.Row="0"
+                  Grid.RowSpan="2"
+                  Visibility="Collapsed"
+                  Background="#1e1e1e"
+                  Panel.ZIndex="10">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- File title -->
+
+                <Border Grid.Row="0"
+                        Background="#292929"
+                        Padding="15,10">
+
+                    <TextBlock x:Name="VimFileTitle"
+                               Foreground="#eeeeee"
+                               FontFamily="Consolas"
+                               FontSize="15"
+                               FontWeight="Bold"
+                               TextTrimming="CharacterEllipsis"/>
+
+                </Border>
+
+                <!-- Actual editing buffer -->
+
+                <TextBox x:Name="VimBuffer"
+                         Grid.Row="1"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
+                         IsReadOnly="True"
+                         IsReadOnlyCaretVisible="True"
+                         Focusable="True"
+                         FocusVisualStyle="{x:Null}"
+                         BorderThickness="0"
+                         Background="#1e1e1e"
+                         Foreground="#eeeeee"
+                         CaretBrush="White"
+                         SelectionBrush="#505c70"
+                         SelectionOpacity="0.6"
+                         Padding="15"
+                         FontFamily="Consolas"
+                         FontSize="16"
+                         TextWrapping="NoWrap"
+                         HorizontalScrollBarVisibility="Auto"
+                         VerticalScrollBarVisibility="Auto"
+                         PreviewKeyDown="VimBuffer_PreviewKeyDown"
+                         PreviewTextInput="VimBuffer_PreviewTextInput"/>
+
+                <!-- Command-line mode -->
+
+                <Border x:Name="VimCommandRow"
+                        Grid.Row="2"
+                        Background="#252525"
+                        Padding="15,5"
+                        Visibility="Collapsed">
+
+                    <Grid>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock x:Name="VimCommandPrefix"
+                                   Grid.Column="0"
+                                   Text=":"
+                                   Foreground="White"
+                                   FontFamily="Consolas"
+                                   FontSize="16"
+                                   VerticalAlignment="Center"/>
+
+                        <TextBox x:Name="VimCommandInput"
+                                 Grid.Column="1"
+                                 Background="Transparent"
+                                 Foreground="White"
+                                 CaretBrush="White"
+                                 BorderThickness="0"
+                                 FontFamily="Consolas"
+                                 FontSize="16"
+                                 Padding="0"
+                                 VerticalContentAlignment="Center"
+                                 HorizontalScrollBarVisibility="Hidden"
+                                 PreviewKeyDown="VimCommandInput_PreviewKeyDown"/>
+
+                    </Grid>
+
+                </Border>
+
+                <!-- Status bar -->
+
+                <Border Grid.Row="3"
+                        Background="#303030"
+                        Padding="15,8">
+
+                    <DockPanel LastChildFill="True">
+
+                        <TextBlock x:Name="VimModeText"
+                                   DockPanel.Dock="Left"
+                                   Foreground="#8fc7ff"
+                                   FontFamily="Consolas"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Margin="0,0,20,0"/>
+
+                        <TextBlock x:Name="VimStatusText"
+                                   Foreground="#cccccc"
+                                   FontFamily="Consolas"
+                                   FontSize="13"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                    </DockPanel>
+
+                </Border>
+
+            </Grid>
 
         </Grid>
 

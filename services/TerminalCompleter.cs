@@ -31,6 +31,7 @@ namespace navigationshurely.services
             "mkdir",
             "rmdir",
             "touch",
+            "vim",
             "cat",
             "rm",
             "cp",

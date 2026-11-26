@@ -9,7 +9,12 @@ namespace navigationshurely.terminal
         public TextFile(string name, string content = "")
             : base(name)
         {
+            SetFileName(name);
             Content = content ?? string.Empty;
+        }
+        public override void Rename(string newName)
+        {
+            SetFileName(newName);
         }
 
         public override string Info => Content;

@@ -10,7 +10,7 @@ namespace navigationshurely.terminal
 
         public IReadOnlyList<Data> Children => data;
 
-        public override string Title => Name;
+        public override string Title => "/" + Name;
 
         public StorageFacility(string name) : base(name)
         {
@@ -31,7 +31,8 @@ namespace navigationshurely.terminal
         {
             ArgumentNullException.ThrowIfNull(item);
 
-            ValidateName(item.Name);
+            string storageName = GetStorageKey(item);
+            ValidateName(storageName);
 
             // Prevent a directory from becoming its own descendant.
             StorageFacility? ancestor = this;
@@ -45,14 +46,14 @@ namespace navigationshurely.terminal
                 ancestor = ancestor.GetOwner() as StorageFacility;
             }
 
-            Data? existing = GetData(item.Name);
+            Data? existing = GetData(storageName);
 
             if (ReferenceEquals(existing, item))
                 return;
 
             if (existing != null)
                 throw new InvalidOperationException(
-                    $"An item named '{item.Name}' already exists.");
+                    $"An item named '{storageName}' already exists.");
 
             // Detach the item from its previous directory.
             if (item.GetOwner() is StorageFacility previousOwner)
@@ -96,7 +97,7 @@ namespace navigationshurely.terminal
 
             return data.FirstOrDefault(
                 item => string.Equals(
-                    item.Name,
+                    GetStorageKey(item),
                     name,
                     StringComparison.Ordinal));
         }
@@ -106,19 +107,27 @@ namespace navigationshurely.terminal
             if (string.IsNullOrWhiteSpace(title))
                 return null;
 
-            string expectedName = title.EndsWith(
-                ".config",
-                StringComparison.OrdinalIgnoreCase)
-                    ? title
-                    : title + ".config";
-
             return data
                 .OfType<Config>()
                 .FirstOrDefault(config =>
-                    string.Equals(config.Name, title,
+                    string.Equals(
+                        config.Name,
+                        title,
                         StringComparison.OrdinalIgnoreCase)
                     ||
-                    string.Equals(config.Name, expectedName,
+                    string.Equals(
+                        config.Title,
+                        title,
+                        StringComparison.OrdinalIgnoreCase)
+                    ||
+                    string.Equals(
+                        config.Identifier.ToString(),
+                        title,
+                        StringComparison.OrdinalIgnoreCase)
+                    ||
+                    string.Equals(
+                        config.Identifier + ".config",
+                        title,
                         StringComparison.OrdinalIgnoreCase));
         }
     }

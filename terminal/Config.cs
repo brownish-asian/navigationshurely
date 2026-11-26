@@ -14,10 +14,15 @@ namespace navigationshurely.terminal
 
         public int Size { get; set; }
 
-        public Config(Controls id) : base(id + ".config")
+        public Config(Controls id) : base(id.ToString())
         {
             Identifier = id;
-            _title = id.ToString();
+            _title = id + ".config";
+        }
+
+        public override void Rename(string newName)
+        {
+            SetFileName(newName);
         }
 
         public override string Info
@@ -60,7 +65,8 @@ namespace navigationshurely.terminal
                 int separator = line.IndexOf('=');
 
                 if (separator <= 0)
-                    throw new FormatException($"Invalid configuration line: {line}");
+                    throw new FormatException(
+                        $"Invalid configuration line: {line}");
 
                 string key = line[..separator].Trim();
                 string value = line[(separator + 1)..].Trim();

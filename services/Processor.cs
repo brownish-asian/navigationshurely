@@ -16,6 +16,7 @@ namespace navigationshurely.services
 
         public event Action? ExitTerminal;
         public event Action? ClearTerminal;
+        public event Action<string, string>? VimRequested;
 
         private bool exitRequested;
 
@@ -264,6 +265,8 @@ namespace navigationshurely.services
 
                 case "cat":
                     return ExecuteCat(args);
+                case "vim":
+                    return ExecuteVim(args);
 
                 case "echo":
                     return string.Join(" ", args);
@@ -541,6 +544,30 @@ namespace navigationshurely.services
             }
 
             return string.Join(Environment.NewLine, output);
+        }
+
+
+        private string ExecuteVim(List<string> args)
+        {
+            if (args.Count != 1)
+                return "Usage: vim [filename]";
+
+            string path = args[0];
+
+            if (!_librarian.TryOpenForEditing(
+                path,
+                out string content,
+                out string error))
+            {
+                return error;
+            }
+
+            if (VimRequested == null)
+                return "vim: editor interface is unavailable.";
+
+            VimRequested.Invoke(path, content);
+
+            return string.Empty;
         }
 
         // ----------------------------------------------------
@@ -917,6 +944,7 @@ namespace navigationshurely.services
                 "  head [-n N] file    Display first lines\n" +
                 "  tail [-n N] file    Display last lines\n" +
                 "  wc [-lwm] file      Count lines, words, characters\n\n" +
+                "  vim file            Edit file using Vim-style commands\n" +
 
                 "Profiles:\n" +
                 "  profiles            List profiles\n" +
@@ -963,6 +991,30 @@ namespace navigationshurely.services
                 "mv" => "mv [source] [destination]\nMoves or renames files and directories.",
 
                 "touch" => "touch [file]\nCreates an empty text file.",
+
+                "vim" =>
+    "vim [filename]\n" +
+    "Opens an existing file or a new temporary buffer.\n\n" +
+    "Modes:\n" +
+    "  Normal       Navigate and manipulate text.\n" +
+    "  Insert       Insert or remove text.\n" +
+    "  Command      Execute editor commands.\n\n" +
+    "Normal mode:\n" +
+    "  h j k l      Move left, down, up and right.\n" +
+    "  w b e        Word motions.\n" +
+    "  0 ^ $        Line motions.\n" +
+    "  gg G         First and last line.\n" +
+    "  d c y        Delete, change and yank.\n" +
+    "  iw aw        Inner and around word.\n" +
+    "  i I a A      Insert and append.\n" +
+    "  o O          Open a line below or above.\n" +
+    "  x p P        Delete and paste.\n" +
+    "  u Ctrl+R     Undo and redo.\n\n" +
+    "Colon commands:\n" +
+    "  :w           Save.\n" +
+    "  :wq          Save and quit.\n" +
+    "  :q           Quit if there are no unsaved changes.\n" +
+    "  :q!          Quit without saving.",
 
                 "cat" => "cat [file]\nDisplays file contents.",
 

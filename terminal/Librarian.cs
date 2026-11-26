@@ -11,8 +11,6 @@ namespace navigationshurely.terminal
         private Profile currentProfile;
         private StorageFacility workingDirectory;
 
-        private string _response = string.Empty;
-
         public Profile CurrentProfile => currentProfile;
 
         public Librarian(string name) : base(name)
@@ -47,7 +45,7 @@ namespace navigationshurely.terminal
                 return error;
 
             if (item is not StorageFacility directory)
-                return item.Name;
+                return item.Title;
 
             IEnumerable<Data> entries = directory.Children;
 
@@ -71,13 +69,13 @@ namespace navigationshurely.terminal
                                 ? file.Content.Length
                                 : 0;
 
-                        return $"{type} {size,8} {entry.Name}";
+                        return $"{type} {size,8} {GetStorageKey(entry)}";
                     }));
             }
 
             return string.Join(
                 Environment.NewLine,
-                entries.Select(entry => entry.Name));
+                entries.Select(entry => entry.Title));
         }
 
         public string Stat(string path)
@@ -102,6 +100,7 @@ namespace navigationshurely.terminal
 
             return
                 $"Name: {item.Name}\n" +
+                $"Title: {item.Title}\n" +
                 $"Type: {type}\n" +
                 $"Path: {GetPath(item)}\n" +
                 $"Size: {size} bytes";
@@ -126,22 +125,6 @@ namespace navigationshurely.terminal
             return string.Empty;
         }
 
-        public void MoveTo(string name)
-        {
-            _response = ChangeDirectory(name);
-        }
-
-        public void MoveOut()
-        {
-            _response = ChangeDirectory("..");
-        }
-
-        public string Response()
-        {
-            string result = _response;
-            _response = string.Empty;
-            return result;
-        }
 
         // ----------------------------------------------------
         // PROFILE MANAGEMENT
@@ -223,11 +206,6 @@ namespace navigationshurely.terminal
             {
                 return $"mkdir: {ex.Message}";
             }
-        }
-
-        public void MakeDir(string name)
-        {
-            _response = CreateDirectory(name);
         }
 
         private string CreateDirectoryTree(string path)
@@ -348,6 +326,70 @@ namespace navigationshurely.terminal
             }
 
             content = item.Info;
+            return true;
+        }
+
+        public bool TryOpenForEditing(
+    string path,
+    out string content,
+    out string error)
+        {
+            content = string.Empty;
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                error = "vim: missing filename.";
+                return false;
+            }
+
+            // First, determine whether the requested item already exists.
+            if (TryResolve(path, out Data? item, out _))
+            {
+                if (item is StorageFacility)
+                {
+                    error = $"vim: '{path}' is a directory.";
+                    return false;
+                }
+
+                if (item is TextFile file)
+                {
+                    content = file.Content;
+                    return true;
+                }
+
+                if (item is Config config)
+                {
+                    content = config.Info;
+                    return true;
+                }
+
+                error = $"vim: '{path}' is not an editable file.";
+                return false;
+            }
+
+            // The file does not exist. Check that its parent directory
+            // exists and that the requested filename is valid.
+            if (!TryResolveParent(
+                path,
+                out StorageFacility? parent,
+                out string name,
+                out string parentError))
+            {
+                error = $"vim: {parentError}";
+                return false;
+            }
+
+            if (parent!.GetData(name) != null)
+            {
+                error = $"vim: '{path}' cannot be opened for editing.";
+                return false;
+            }
+
+            // New files begin as temporary empty buffers.
+            // Nothing is inserted into the filesystem until :w.
+            content = string.Empty;
+
             return true;
         }
 
@@ -573,7 +615,7 @@ namespace navigationshurely.terminal
                         var copy = new Profile(newName, false);
 
                         foreach (Data child in profile.Children)
-                            copy.AddData(CloneData(child, child.Name));
+                            copy.AddData(CloneData(child, GetStorageKey(child)));
 
                         return copy;
                     }
@@ -583,7 +625,7 @@ namespace navigationshurely.terminal
                         var copy = new StorageFacility(newName);
 
                         foreach (Data child in directory.Children)
-                            copy.AddData(CloneData(child, child.Name));
+                            copy.AddData(CloneData(child, GetStorageKey(child)));
 
                         return copy;
                     }
@@ -641,7 +683,7 @@ namespace navigationshurely.terminal
             if (source.GetOwner() is not StorageFacility previousParent)
                 return "mv: cannot find the original directory.";
 
-            string oldName = source.Name;
+            string oldName = GetStorageKey(source);
 
             try
             {
@@ -679,7 +721,7 @@ namespace navigationshurely.terminal
 
             var builder = new StringBuilder();
 
-            builder.AppendLine(item.Name);
+            builder.AppendLine(GetStorageKey(item));
 
             if (item is StorageFacility directory)
                 AppendTree(builder, directory, 1);
@@ -699,7 +741,7 @@ namespace navigationshurely.terminal
                 if (child is StorageFacility)
                     builder.AppendLine(child.Name + "/");
                 else
-                    builder.AppendLine(child.Name);
+                    builder.AppendLine(GetStorageKey(child));
 
                 if (child is StorageFacility childDirectory)
                     AppendTree(builder, childDirectory, depth + 1);
@@ -727,8 +769,11 @@ namespace navigationshurely.terminal
             string pattern,
             List<string> results)
         {
-            if (WildcardMatches(pattern, item.Name))
+            if (WildcardMatches(pattern, item.Name) ||
+                WildcardMatches(pattern, item.Title))
+            {
                 results.Add(GetPath(item));
+            }
 
             if (item is not StorageFacility directory)
                 return;
@@ -938,7 +983,7 @@ namespace navigationshurely.terminal
                 }
 
                 destination = directory;
-                name = source.Name;
+                name = GetStorageKey(source);
                 return true;
             }
 
@@ -971,7 +1016,7 @@ namespace navigationshurely.terminal
 
             while (cursor != null && !ReferenceEquals(cursor, this))
             {
-                parts.Push(cursor.Name);
+                parts.Push(GetStorageKey(cursor));  
                 cursor = cursor.GetOwner();
             }
 
@@ -1083,16 +1128,20 @@ namespace navigationshurely.terminal
             }
 
             foreach (Data child in directory.Children
-                .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
+                .OrderBy(
+                    item => GetStorageKey(item),
+                    StringComparer.OrdinalIgnoreCase))
             {
-                if (!child.Name.StartsWith(
+                string childName = GetStorageKey(child);
+
+                if (!childName.StartsWith(
                     partialName,
                     StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                string candidate = directoryPrefix + child.Name;
+                string candidate = directoryPrefix + childName;
 
                 if (child is StorageFacility)
                     candidate += "/";
