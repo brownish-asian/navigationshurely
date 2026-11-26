@@ -65,8 +65,11 @@ namespace navigationshurely
         private readonly BibleDatabase _database;
         private readonly BibleNavigator navigator;
         private readonly AliasCatalogue _aliasCatalog = new();
-        private readonly KingState kingState = new();
-        private readonly Librarian librarian = new Librarian("/home");
+
+        private readonly Librarian librarian =
+            new Librarian("/home");
+
+        private readonly KingState kingState;
 
         // =========================================================
         // CHAPTER / VERSE COMMAND OPTIONS
@@ -147,6 +150,9 @@ namespace navigationshurely
         public MainWindow()
         {
             InitializeComponent();
+            kingState = new KingState(librarian);
+
+            DataContext = kingState;
 
             SettingsGuy settingsGuy = new SettingsGuy();
             plumber = settingsGuy.loAd();

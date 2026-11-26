@@ -13,6 +13,7 @@ namespace navigationshurely.services
         private string InputText = string.Empty;
         private int CursorPosition;
         private bool shipOut = false;
+        public Func<string>? WorkingDirectoryProvider { get; set; }
 
         // History navigation.
         private int historyIndex = -1;
@@ -34,14 +35,22 @@ namespace navigationshurely.services
             CompletionProvider
         { get; set; }
 
+        private string PromptPrefix()
+        {
+            string directory =
+                WorkingDirectoryProvider?.Invoke() ?? "/";
+
+            return $"{directory} > ";
+        }
+
         public string DisplayString()
         {
-            return "> " + InputText;
+            return PromptPrefix() + InputText;
         }
 
         public int CursorIndex()
         {
-            return CursorPosition + 2;
+            return CursorPosition + PromptPrefix().Length;
         }
 
         public string CommandString()

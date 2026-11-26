@@ -41,6 +41,9 @@ namespace navigationshurely
             this.kingState = kingState;
             this.librarian = librarian;
 
+            _inputHandler.WorkingDirectoryProvider =
+    librarian.WorkingDirectory;
+
             processor = new Processor(librarian, _organiser.GetAllCommands);
 
             TerminalCompleter completer = new TerminalCompleter(librarian);

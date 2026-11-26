@@ -109,8 +109,35 @@
     </Window.Background>
     <Viewbox Stretch="Uniform">
         <Canvas x:Name="MainCanvas" Width="1920" Height="1080" ClipToBounds="True">
-            <TextBlock x:Name="titleBox" Text="" Background="Transparent" Foreground="White" FontFamily="Arial" FontWeight="Bold" FontSize="70" HorizontalAlignment="Left" MouseLeftButtonUp="titleBox_MouseRightButtonUp" Canvas.Left="96" Canvas.Top="90"/>
-            <TextBlock x:Name="translationBox" Background="Transparent" Foreground="#FFEEFF36" FontFamily="Arial" FontWeight="Bold" FontStyle="Italic" FontSize="40" HorizontalAlignment="Left" MouseLeftButtonUp="translationBox_MouseLeftButtonUp" Canvas.Left="96" Canvas.Top="162"/>
+            <TextBlock x:Name="titleBox"
+           Text=""
+           Background="Transparent"
+           Foreground="White"
+           FontFamily="Arial"
+           FontWeight="Bold"
+           FontSize="{Binding ActiveProfile.TitleBoxConfig.FontSize, Mode=OneWay}"
+           Width="{Binding ActiveProfile.TitleBoxConfig.Width, Mode=OneWay}"
+           Height="{Binding ActiveProfile.TitleBoxConfig.Height, Mode=OneWay}"
+           Visibility="{Binding ActiveProfile.TitleBoxConfig.Visibility, Mode=OneWay}"
+           HorizontalAlignment="Left"
+           MouseLeftButtonUp="titleBox_MouseRightButtonUp"
+           Canvas.Left="{Binding ActiveProfile.TitleBoxConfig.Left, Mode=OneWay}"
+           Canvas.Top="{Binding ActiveProfile.TitleBoxConfig.Top, Mode=OneWay}"/>
+
+            <TextBlock x:Name="translationBox"
+           Background="Transparent"
+           Foreground="#FFEEFF36"
+           FontFamily="Arial"
+           FontWeight="Bold"
+           FontStyle="Italic"
+           FontSize="{Binding ActiveProfile.TranslationBoxConfig.FontSize, Mode=OneWay}"
+           Width="{Binding ActiveProfile.TranslationBoxConfig.Width, Mode=OneWay}"
+           Height="{Binding ActiveProfile.TranslationBoxConfig.Height, Mode=OneWay}"
+           Visibility="{Binding ActiveProfile.TranslationBoxConfig.Visibility, Mode=OneWay}"
+           HorizontalAlignment="Left"
+           MouseLeftButtonUp="translationBox_MouseLeftButtonUp"
+           Canvas.Left="{Binding ActiveProfile.TranslationBoxConfig.Left, Mode=OneWay}"
+           Canvas.Top="{Binding ActiveProfile.TranslationBoxConfig.Top, Mode=OneWay}"/>
             <!--
             Responsive layout:
             - Side columns act as proportional gutters, with a minimum width for readability.

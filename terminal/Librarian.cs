@@ -2,24 +2,36 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace navigationshurely.terminal
 {
-    public class Librarian : StorageFacility
+    public class Librarian : StorageFacility, INotifyPropertyChanged
     {
         private Profile currentProfile;
         private StorageFacility workingDirectory;
 
         public Profile CurrentProfile => currentProfile;
 
-        public Librarian(string name) : base(name)
+        public Librarian(string name) : base(NormalizeRootName(name))
         {
             currentProfile = new Profile("default_profile");
 
             AddData(currentProfile);
 
             workingDirectory = this;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged(
+            [CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(propertyName));
         }
 
         // ----------------------------------------------------
@@ -167,8 +179,14 @@ namespace navigationshurely.terminal
             if (item is not Profile profile)
                 return $"useprofile: Profile '{name}' does not exist.";
 
+            bool profileChanged =
+                !ReferenceEquals(currentProfile, profile);
+
             currentProfile = profile;
             workingDirectory = profile;
+
+            if (profileChanged)
+                OnPropertyChanged(nameof(CurrentProfile));
 
             return string.Empty;
         }
@@ -604,6 +622,10 @@ namespace navigationshurely.terminal
                     {
                         Top = config.Top,
                         Left = config.Left,
+                        Width = config.Width,
+                        Height = config.Height,
+                        FontSize = config.FontSize,
+                        Visibility = config.Visibility,
                         Size = config.Size
                     };
 
@@ -864,12 +886,36 @@ namespace navigationshurely.terminal
         private bool TryGetStartingDirectory(
             ref string path,
             out StorageFacility? start,
-            out string error)
+            out string error)   
         {
             error = string.Empty;
             start = null;
 
             path = path.Replace('\\', '/');
+            string rootPath = Title;
+
+            // The filesystem root itself: /home
+            if (string.Equals(
+                path,
+                rootPath,
+                StringComparison.Ordinal))
+            {
+                start = this;
+                path = string.Empty;
+                return true;
+            }
+
+            // A path beneath the root: /home/something
+            string rootPrefix = rootPath + "/";
+
+            if (path.StartsWith(
+                rootPrefix,
+                StringComparison.Ordinal))
+            {
+                start = this;
+                path = path[rootPrefix.Length..];
+                return true;
+            }
 
             if (path == "~")
             {
@@ -1007,8 +1053,10 @@ namespace navigationshurely.terminal
 
         private string GetPath(Data item)
         {
+            string rootPath = Title;
+
             if (ReferenceEquals(item, this))
-                return "/";
+                return rootPath;
 
             var parts = new Stack<string>();
 
@@ -1016,11 +1064,11 @@ namespace navigationshurely.terminal
 
             while (cursor != null && !ReferenceEquals(cursor, this))
             {
-                parts.Push(GetStorageKey(cursor));  
+                parts.Push(GetStorageKey(cursor));
                 cursor = cursor.GetOwner();
             }
 
-            return "/" + string.Join("/", parts);
+            return rootPath + "/" + string.Join("/", parts);
         }
 
         private static bool IsWithin(
@@ -1039,6 +1087,25 @@ namespace navigationshurely.terminal
 
             return false;
         }
+
+        private static string NormalizeRootName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Root name cannot be empty.");
+
+            string normalized = name
+                .Replace('\\', '/')
+                .Trim('/');
+
+            if (normalized.Length == 0 || normalized.Contains('/'))
+            {
+                throw new ArgumentException(
+                    "The root name must be a single directory name.");
+            }
+
+            return normalized;
+        }
+
 
         // ----------------------------------------------------
         // TAB COMPLETION: PATHS

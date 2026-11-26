@@ -44,6 +44,9 @@ namespace navigationshurely.services
             "tail",
             "wc",
 
+            "pstn",
+            "shift",
+
             "basename",
             "dirname",
 
@@ -62,6 +65,16 @@ namespace navigationshurely.services
             ["mkdir"] = new[]
             {
                 "-p", "--parents"
+            },
+
+            ["pstn"] = new[]
+{
+                "--x", "--y"
+            },
+
+            ["shift"] = new[]
+            {
+                "--dx", "--dy"
             },
 
             ["rm"] = new[]
@@ -196,6 +209,20 @@ namespace navigationshurely.services
                 return _librarian
                     .CompleteProfiles(prefix)
                     .Select(profile => FormatCandidate(profile, quote))
+                    .ToList();
+            }
+
+            // Complete Controls enum names after pstn or shift.
+            if ((commandName == "pstn" || commandName == "shift") &&
+                currentCommand.Count == 1 &&
+                !prefix.StartsWith("-", StringComparison.Ordinal))
+            {
+                return Enum.GetNames(typeof(Controls))
+                    .Where(control =>
+                        control.StartsWith(
+                            prefix,
+                            StringComparison.OrdinalIgnoreCase))
+                    .Select(control => FormatCandidate(control, quote))
                     .ToList();
             }
 

@@ -9,16 +9,37 @@ namespace navigationshurely.terminal
         {
         }
 
-        internal Profile(string name, bool initialiseConfigurations)
+        internal Profile(
+            string name,
+            bool initialiseConfigurations)
             : base(name)
         {
             if (!initialiseConfigurations)
                 return;
 
-            foreach (Controls control in Enum.GetValues(typeof(Controls)))
+            foreach (Controls control in
+                Enum.GetValues(typeof(Controls)))
             {
                 AddData(new Config(control));
             }
         }
+
+        public Config GetControlConfig(Controls control)
+        {
+            if (!Enum.IsDefined(typeof(Controls), control))
+            {
+                throw new ArgumentOutOfRangeException(nameof(control));
+            }
+
+            return AskForConfig(control.ToString())
+                ?? throw new InvalidOperationException(
+                    $"Profile '{Name}' has no configuration for '{control}'.");
+        }
+
+        public Config TitleBoxConfig =>
+            GetControlConfig(Controls.TitleBox);
+
+        public Config TranslationBoxConfig =>
+            GetControlConfig(Controls.TranslationBox);
     }
 }

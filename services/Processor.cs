@@ -3,6 +3,7 @@ using navigationshurely.terminal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace navigationshurely.services
@@ -13,6 +14,7 @@ namespace navigationshurely.services
 
         private readonly Librarian _librarian;
         private readonly Func<string> _historyProvider;
+        private readonly ShiftManager _shiftManager;
 
         public event Action? ExitTerminal;
         public event Action? ClearTerminal;
@@ -28,6 +30,8 @@ namespace navigationshurely.services
                 throw new ArgumentNullException(nameof(librarian));
 
             _historyProvider = historyProvider ?? (() => string.Empty);
+
+            _shiftManager = new ShiftManager(_librarian);
         }
 
         public string Response()
@@ -197,6 +201,13 @@ namespace navigationshurely.services
                         ? _librarian.SelectProfile(args[0])
                         : "Usage: useprofile [profile_name]";
 
+                case "pstn":
+                    return ExecutePosition(args, relative: false);
+
+                case "shift":
+                    return ExecutePosition(args, relative: true);
+
+
                 // ------------------------------------------------
                 // DIRECTORY NAVIGATION
                 // ------------------------------------------------
@@ -322,6 +333,161 @@ namespace navigationshurely.services
         // ----------------------------------------------------
         // LS
         // ----------------------------------------------------
+
+        // ----------------------------------------------------
+        // CONTROL POSITIONING
+        // ----------------------------------------------------
+
+        private string ExecutePosition(
+            List<string> args,
+            bool relative)
+        {
+            string commandName = relative ? "shift" : "pstn";
+
+            string usage = relative
+                ? "Usage: shift <control> [--dx <deltaX>] [--dy <deltaY>]"
+                : "Usage: pstn <control> [--x <left>] [--y <top>]";
+
+            if (args.Count < 3)
+                return usage;
+
+            if (!TryParseControl(args[0], out Controls control))
+            {
+                return
+                    $"{commandName}: '{args[0]}' is not a recognised control.";
+            }
+
+            string horizontalOption = relative ? "--dx" : "--x";
+            string verticalOption = relative ? "--dy" : "--y";
+
+            double? horizontal = null;
+            double? vertical = null;
+
+            // Parse and validate all arguments before making any changes.
+            for (int i = 1; i < args.Count; i++)
+            {
+                string option = args[i];
+
+                bool isHorizontal = string.Equals(
+                    option,
+                    horizontalOption,
+                    StringComparison.Ordinal);
+
+                bool isVertical = string.Equals(
+                    option,
+                    verticalOption,
+                    StringComparison.Ordinal);
+
+                if (!isHorizontal && !isVertical)
+                {
+                    return
+                        $"{commandName}: unknown option '{option}'.";
+                }
+
+                if (isHorizontal && horizontal.HasValue)
+                {
+                    return
+                        $"{commandName}: option '{option}' was supplied more than once.";
+                }
+
+                if (isVertical && vertical.HasValue)
+                {
+                    return
+                        $"{commandName}: option '{option}' was supplied more than once.";
+                }
+
+                if (i + 1 >= args.Count ||
+                    args[i + 1].StartsWith(
+                        "--",
+                        StringComparison.Ordinal))
+                {
+                    return
+                        $"{commandName}: missing value for '{option}'.";
+                }
+
+                string rawValue = args[++i];
+
+                if (!TryParseFiniteDouble(rawValue, out double value))
+                {
+                    return
+                        $"{commandName}: '{rawValue}' is not a valid finite coordinate.";
+                }
+
+                if (isHorizontal)
+                    horizontal = value;
+                else
+                    vertical = value;
+            }
+
+            // At least one coordinate must have been provided.
+            if (!horizontal.HasValue && !vertical.HasValue)
+                return usage;
+
+            // No configuration has been modified before this point.
+            try
+            {
+                if (relative)
+                {
+                    _shiftManager.Shift(
+                        control,
+                        horizontal,
+                        vertical);
+                }
+                else
+                {
+                    _shiftManager.SetPosition(
+                        control,
+                        horizontal,
+                        vertical);
+                }
+            }
+            catch (Exception ex) when (
+                ex is ArgumentException ||
+                ex is InvalidOperationException)
+            {
+                return $"{commandName}: {ex.Message}";
+            }
+
+            return string.Empty;
+        }
+
+        private static bool TryParseControl(
+            string value,
+            out Controls control)
+        {
+            // Match actual enum names rather than allowing numeric enum values.
+            string? matchingName = Enum.GetNames(typeof(Controls))
+                .FirstOrDefault(name =>
+                    string.Equals(
+                        name,
+                        value,
+                        StringComparison.OrdinalIgnoreCase));
+
+            if (matchingName == null)
+            {
+                control = default;
+                return false;
+            }
+
+            control = (Controls)Enum.Parse(
+                typeof(Controls),
+                matchingName);
+
+            return true;
+        }
+
+        private static bool TryParseFiniteDouble(
+            string value,
+            out double result)
+        {
+            return double.TryParse(
+                    value,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out result) &&
+                !double.IsNaN(result) &&
+                !double.IsInfinity(result);
+        }
 
         private string ExecuteLs(List<string> args)
         {
@@ -951,6 +1117,10 @@ namespace navigationshurely.services
                 "  mkprofile name      Create profile\n" +
                 "  useprofile name     Select active profile\n\n" +
 
+                "Control positioning:\n" +
+"  pstn control [--x L] [--y T] Set absolute position\n" +
+"  shift control [--dx X] [--dy Y] Move relative to current position\n\n" +
+
                 "Other:\n" +
                 "  history             Display command history\n" +
                 "  whoami              Display current user\n" +
@@ -1015,6 +1185,19 @@ namespace navigationshurely.services
     "  :wq          Save and quit.\n" +
     "  :q           Quit if there are no unsaved changes.\n" +
     "  :q!          Quit without saving.",
+
+
+                "pstn" =>
+    "pstn <control> [--x <left>] [--y <top>]\n" +
+    "Sets the absolute position of a control in the active profile.\n" +
+    "Use --x to set Left and --y to set Top.\n" +
+    "At least one coordinate is required. Unspecified coordinates remain unchanged.",
+
+                "shift" =>
+                    "shift <control> [--dx <deltaX>] [--dy <deltaY>]\n" +
+                    "Moves a control relative to its current position in the active profile.\n" +
+                    "Positive dx moves right. Positive dy moves down.\n" +
+                    "At least one shift value is required. Unspecified axes remain unchanged.",
 
                 "cat" => "cat [file]\nDisplays file contents.",
 
