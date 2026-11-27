@@ -5,6 +5,7 @@ using System.Text;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using navigationshurely.models;
 
 namespace navigationshurely.terminal
 {
@@ -32,6 +33,169 @@ namespace navigationshurely.terminal
             PropertyChanged?.Invoke(
                 this,
                 new PropertyChangedEventArgs(propertyName));
+        }
+
+        // ----------------------------------------------------
+        // PERSISTENCE
+        // ----------------------------------------------------
+
+        public FileSystemSnapshot ExportFileSystem()
+        {
+            var snapshot = new FileSystemSnapshot
+            {
+                ActiveProfileName = currentProfile.Name,
+                WorkingDirectoryPath = GetPath(workingDirectory)
+            };
+
+            foreach (Data child in Children)
+                snapshot.Entries.Add(CreateSnapshot(child));
+
+            return snapshot;
+        }
+
+        public void RestoreFileSystem(FileSystemSnapshot? snapshot)
+        {
+            if (snapshot == null)
+                return;
+
+            // Build and validate the replacement tree before touching the live one.
+            var stagingRoot = new StorageFacility(Name);
+            foreach (FileSystemEntrySnapshot entry in snapshot.Entries ?? new())
+                stagingRoot.AddData(RestoreEntry(entry));
+
+            Profile? restoredProfile = stagingRoot.Children
+                .OfType<Profile>()
+                .FirstOrDefault(profile => string.Equals(
+                    profile.Name, snapshot.ActiveProfileName, StringComparison.Ordinal));
+
+            if (restoredProfile == null)
+            {
+                restoredProfile = stagingRoot.Children.OfType<Profile>()
+                    .FirstOrDefault();
+            }
+
+            if (restoredProfile == null)
+            {
+                restoredProfile = new Profile("default_profile");
+                stagingRoot.AddData(restoredProfile);
+            }
+
+            foreach (Profile profile in stagingRoot.Children.OfType<Profile>())
+                EnsureProfileConfigurations(profile);
+
+            foreach (Data existing in Children.ToList())
+                RemoveData(existing);
+
+            foreach (Data restored in stagingRoot.Children.ToList())
+                AddData(restored);
+
+            currentProfile = Children.OfType<Profile>()
+                .First(profile => string.Equals(
+                    profile.Name, restoredProfile.Name, StringComparison.Ordinal));
+
+            // Resolve again now that the restored objects belong to this root.
+            workingDirectory = currentProfile;
+            if (!string.IsNullOrWhiteSpace(snapshot.WorkingDirectoryPath) &&
+                TryResolve(snapshot.WorkingDirectoryPath, out Data? liveWorking, out _) &&
+                liveWorking is StorageFacility liveDirectory)
+            {
+                workingDirectory = liveDirectory;
+            }
+
+            OnPropertyChanged(nameof(CurrentProfile));
+        }
+
+        private static FileSystemEntrySnapshot CreateSnapshot(Data item)
+        {
+            var entry = new FileSystemEntrySnapshot();
+
+            switch (item)
+            {
+                case Profile profile:
+                    entry.Kind = "profile";
+                    entry.Name = profile.Name;
+                    foreach (Data child in profile.Children)
+                        entry.Children.Add(CreateSnapshot(child));
+                    break;
+
+                case StorageFacility directory:
+                    entry.Kind = "directory";
+                    entry.Name = directory.Name;
+                    foreach (Data child in directory.Children)
+                        entry.Children.Add(CreateSnapshot(child));
+                    break;
+
+                case Config config:
+                    entry.Kind = "config";
+                    entry.Name = config.Title;
+                    entry.ConfigIdentifier = config.Identifier.ToString();
+                    entry.Content = config.Info;
+                    break;
+
+                case TextFile file:
+                    entry.Kind = "text";
+                    entry.Name = file.Title;
+                    entry.Content = file.Content;
+                    break;
+
+                default:
+                    entry.Kind = "text";
+                    entry.Name = item.Title;
+                    entry.Content = item.Info;
+                    break;
+            }
+
+            return entry;
+        }
+
+        private static Data RestoreEntry(FileSystemEntrySnapshot entry)
+        {
+            if (entry == null)
+                throw new InvalidOperationException("The saved filesystem contains an empty entry.");
+
+            switch (entry.Kind)
+            {
+                case "profile":
+                case "directory":
+                    StorageFacility directory = entry.Kind == "profile"
+                        ? new Profile(entry.Name, false)
+                        : new StorageFacility(entry.Name);
+
+                    foreach (FileSystemEntrySnapshot child in entry.Children ?? new())
+                        directory.AddData(RestoreEntry(child));
+
+                    return directory;
+
+                case "config":
+                    if (!Enum.TryParse(entry.ConfigIdentifier, true, out Controls identifier) ||
+                        !Enum.IsDefined(typeof(Controls), identifier))
+                    {
+                        throw new InvalidOperationException(
+                            $"Unknown saved control configuration '{entry.ConfigIdentifier}'.");
+                    }
+
+                    var config = new Config(identifier);
+                    config.ChangeInfo(entry.Content ?? string.Empty);
+                    if (!string.Equals(config.Title, entry.Name, StringComparison.Ordinal))
+                        config.Rename(entry.Name);
+                    return config;
+
+                case "text":
+                    return new TextFile(entry.Name, entry.Content ?? string.Empty);
+
+                default:
+                    throw new InvalidOperationException(
+                        $"Unknown saved filesystem entry type '{entry.Kind}'.");
+            }
+        }
+
+        private static void EnsureProfileConfigurations(Profile profile)
+        {
+            foreach (Controls control in Enum.GetValues(typeof(Controls)))
+            {
+                if (profile.AskForConfig(control.ToString()) == null)
+                    profile.AddData(new Config(control));
+            }
         }
 
         // ----------------------------------------------------

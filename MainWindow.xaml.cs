@@ -157,8 +157,31 @@ namespace navigationshurely
         public MainWindow()
         {
             InitializeComponent();
-            kingState = new KingState(librarian);
 
+            SettingsGuy settingsGuy = new SettingsGuy();
+            plumber = settingsGuy.loAd();
+            try
+            {
+                librarian.RestoreFileSystem(plumber.TerminalFileSystem);
+
+                // Keep the explicit setting as a compatibility fallback for
+                // settings files written before the filesystem snapshot existed.
+                if (!string.IsNullOrWhiteSpace(plumber.ActiveProfileName))
+                    librarian.SelectProfile(plumber.ActiveProfileName);
+            }
+            catch (Exception ex)
+            {
+                // A malformed terminal snapshot must not prevent the Bible
+                // application from starting. The librarian keeps its defaults
+                // because restoration builds the replacement tree off to the side.
+                MessageBox.Show(
+                    $"The saved terminal filesystem could not be restored.\n\n{ex.Message}",
+                    "Terminal settings",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+
+            kingState = new KingState(librarian);
             DataContext = kingState;
 
             shiftManager = new ShiftManager(librarian);
@@ -197,9 +220,6 @@ namespace navigationshurely
             layoutEditor.RegisterEditSurface(Controls.ModeBox, modeBoxEditSurface);
 
             kingState.PropertyChanged += KingState_PropertyChanged;
-
-            SettingsGuy settingsGuy = new SettingsGuy();
-            plumber = settingsGuy.loAd();
 
             backgroundImagePath = plumber.LastImageFilePath;
             BackgroundBrush.ImageSource = new BitmapImage(
@@ -348,6 +368,8 @@ namespace navigationshurely
             plumber.LastImageFilePath = backgroundImagePath;
             plumber.LastPreferredLayout = layout;
             plumber.LastOptionsHint = optionsVisible;
+            plumber.ActiveProfileName = librarian.CurrentProfile.Name;
+            plumber.TerminalFileSystem = librarian.ExportFileSystem();
 
             SettingsGuy settingsGuy = new SettingsGuy();
             settingsGuy.saVe(plumber);
@@ -391,10 +413,6 @@ namespace navigationshurely
                 layoutEditor.SetEditMode(false);
                 e.Handled = true;
 
-                // Block mouse input before restoring its elevated terminal.
-                // Keep the owner enabled so WPF retains a stable window
-                // activation relationship throughout the hand-off.
-                adminInputBlocker.Visibility = Visibility.Visible;
                 activeAdminWindow?.RestoreFromFreeMove();
                 return;
             }
@@ -715,12 +733,8 @@ namespace navigationshurely
             adminWindow.FreeMoveTerminalHidden += AdminWindow_FreeMoveTerminalHidden;
             adminWindow.Closed += AdminWindow_Closed;
 
-            // Keep the terminal modeless so the owner can receive input during
-            // free-move. A transparent blocker preserves the old modal-style
-            // mouse restriction without disabling the owner window. Disabling
-            // an owner while hiding/restoring an owned window can leave WPF's
-            // keyboard activation state inconsistent.
-            adminInputBlocker.Visibility = Visibility.Visible;
+            // The terminal is modeless so the owner remains available during
+            // free-move. No transparent overlay is placed over the main window.
             adminWindow.Show();
             adminWindow.FocusCommandLine();
 
@@ -732,8 +746,7 @@ namespace navigationshurely
             if (activeAdminWindow == null || layoutEditor.IsEnabled)
                 return;
 
-            // Prepare the editor before the transition. The main-window input
-            // blocker stays visible until the terminal has completely hidden.
+            // Prepare the editor before the terminal slides away.
             layoutEditor.SetEditMode(true);
             activeAdminWindow.AnimateOutForFreeMove();
         }
@@ -742,10 +755,6 @@ namespace navigationshurely
         {
             if (!layoutEditor.IsEnabled)
                 return;
-
-            // Release the input blocker only after the terminal has completely
-            // hidden. The main window itself has remained enabled throughout.
-            adminInputBlocker.Visibility = Visibility.Collapsed;
 
             // Focus on the next dispatcher input pass, after the owned window's
             // Hide() and activation hand-off have finished.
@@ -770,11 +779,19 @@ namespace navigationshurely
             if (layoutEditor.IsEnabled)
                 layoutEditor.SetEditMode(false);
 
-            // Closing the admin terminal releases the temporary mouse blocker.
-            // The owner was never disabled, so WPF can restore its previous
-            // activation and keyboard-focus route normally.
-            adminInputBlocker.Visibility = Visibility.Collapsed;
             inputHandler.ExitSearchMode();
+
+            // Explicitly hand keyboard focus back after WPF has completed the
+            // owned-window close/activation transition.
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                if (!IsVisible || activeAdminWindow != null)
+                    return;
+
+                Activate();
+                MainCanvas.Focus();
+                Keyboard.Focus(MainCanvas);
+            }));
         }
 
 

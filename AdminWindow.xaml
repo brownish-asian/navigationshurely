@@ -10,9 +10,9 @@
         Width="800"
         ResizeMode="NoResize"
         SnapsToDevicePixels="true"
+        AllowsTransparency="True"
         WindowStyle="None"
         Background="Transparent"
-        AllowsTransparency="True"
         x:Name="AdminScreen"
         Loaded="AdminScreen_Loaded"
         ShowInTaskbar="false">
@@ -27,11 +27,7 @@
 
         <Border.RenderTransform>
             <TransformGroup>
-                <ScaleTransform x:Name="PopupScale"
-                                ScaleX="0"
-                                ScaleY="0" />
-                <TranslateTransform x:Name="PopupSlide"
-                                    X="0" />
+                <TranslateTransform x:Name="PopupSlide"/>
             </TransformGroup>
         </Border.RenderTransform>
 
@@ -48,7 +44,7 @@
 
             <ScrollViewer x:Name="TerminalScrollViewer"
                           Grid.Row="0"
-                          VerticalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
                           Padding="30">
 

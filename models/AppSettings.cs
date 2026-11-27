@@ -1,10 +1,10 @@
-﻿using SQLitePCL;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using navigationshurely.terminal;
 using System.Threading.Tasks;
 
 namespace navigationshurely.models
@@ -23,7 +23,11 @@ namespace navigationshurely.models
 
         public Dictionary<int, Verse> LastMarks { get; set; }
 
-        public AppSettings() 
+        // Persist the active profile and the complete virtual terminal filesystem.
+        public string ActiveProfileName { get; set; } = "default_profile";
+        public FileSystemSnapshot TerminalFileSystem { get; set; } = new();
+
+        public AppSettings()
         {
             LastImageFilePath = "images/dbw59.jpg";
             LastBookNumber = 1;

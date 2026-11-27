@@ -397,7 +397,7 @@
                             </Grid>
 
                             <!-- CURRENT REFERENCE + COMMAND BUFFER -->
-                            <Grid>
+                            <Grid Width="298" Margin="0,0,0,5">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="190"/>
                                     <ColumnDefinition Width="45"/>
@@ -479,17 +479,7 @@
                 <TextBlock x:Name="layoutEditorStatus" Canvas.Left="24" Canvas.Top="24" Foreground="White" FontFamily="Consolas" FontWeight="Bold" FontSize="15" Background="#DD071320" Padding="10,6" Visibility="Collapsed" IsHitTestVisible="False"/>
             </Canvas>
 
-            <!-- Blocks mouse interaction with the main interface while the
-                 elevated AdminWindow is open. It is removed during freemove. -->
-            <Rectangle x:Name="adminInputBlocker"
-                       Canvas.Left="0"
-                       Canvas.Top="0"
-                       Width="1920"
-                       Height="1080"
-                       Fill="#01000000"
-                       Panel.ZIndex="2000"
-                       Focusable="False"
-                       Visibility="Collapsed"/>
+
         </Canvas>
     </Viewbox>
 </Window>

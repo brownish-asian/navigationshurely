@@ -546,12 +546,12 @@ namespace navigationshurely
         {
             // Match MainWindow's global Ctrl+Q exit shortcut even while the
             // elevated terminal or its Vim editor owns keyboard focus.
-            if (e.Key == Key.Q &&
-                (Keyboard.Modifiers & ModifierKeys.Control) != 0)
-            {
-                e.Handled = true;
-                Application.Current?.Shutdown();
-            }
+            //if (e.Key == Key.Q &&
+              //  (Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            //{
+              //  e.Handled = true;
+                //Application.Current?.Shutdown();
+            //}
         }
 
         private void AdminInputDisplay_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -572,16 +572,17 @@ namespace navigationshurely
             Top = workArea.Top + (workArea.Height - Height) / 2;
 
 
-            DoubleAnimation scale = new DoubleAnimation(
-                0, 1, TimeSpan.FromMilliseconds(200))
+            DoubleAnimation scale = new DoubleAnimation
             {
+                From = 400,
+                To = 0,
+                Duration = TimeSpan.FromMilliseconds(500),
                 EasingFunction = new CubicEase
                 {
                     EasingMode = EasingMode.EaseOut,
                 }
             };
-            PopupScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
-            PopupScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
+            PopupSlide.BeginAnimation(TranslateTransform.XProperty, scale);
 
         }
 
@@ -627,19 +628,43 @@ namespace navigationshurely
             }));
         }
 
+        private bool _exitQueued;
+
         private void Exit()
         {
-            DoubleAnimation scale = new DoubleAnimation(
-    1, 0, TimeSpan.FromMilliseconds(200))
+            if (_exitQueued)
+                return;
+
+            _exitQueued = true;
+
+            // The processor is called from the input event. Closing the owned
+            // window inside that event can interrupt WPF's focus/activation
+            // hand-off while the command handler is still unwinding. Queue the
+            // close so SendOffToZsh can finish updating the terminal first.
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                EasingFunction = new CubicEase
+                if (IsLoaded)
                 {
-                    EasingMode = EasingMode.EaseOut,
+                    DoubleAnimation scale = new DoubleAnimation
+                    {
+                        From = 0,
+                        To = 900,
+                        Duration = TimeSpan.FromMilliseconds(500),
+                        FillBehavior = FillBehavior.HoldEnd,
+                        EasingFunction = new CubicEase
+                        {
+                            EasingMode = EasingMode.EaseOut,
+                        }
+                    };
+                    scale.Completed += (s, e) =>
+                    {
+                        this.Visibility = Visibility.Hidden;
+                        Close();
+                    };
+                    PopupSlide.BeginAnimation(TranslateTransform.XProperty, scale);
                 }
-            };
-            PopupScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
-            PopupScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
-            Close();
+                    
+            }));
         }
     }
 }
